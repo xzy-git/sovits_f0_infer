@@ -1,9 +1,10 @@
 import copy
-import torch
 import random
+from typing import Optional, Tuple
+
+import torch
 import torch.nn as nn
 import torch.nn.functional as t_func
-from typing import Optional, Tuple
 from torch.nn.modules.utils import consume_prefix_in_state_dict_if_present
 
 

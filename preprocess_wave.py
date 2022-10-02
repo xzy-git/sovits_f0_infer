@@ -1,9 +1,11 @@
 import os
+
 import librosa
-import pyworld
-import utils
 import numpy as np
+import pyworld
 from scipy.io import wavfile
+
+import utils
 
 
 class FeatureInput(object):
@@ -35,7 +37,7 @@ class FeatureInput(object):
     def coarse_f0(self, f0):
         f0_mel = 1127 * np.log(1 + f0 / 700)
         f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - self.f0_mel_min) * (
-            self.f0_bin - 2
+                self.f0_bin - 2
         ) / (self.f0_mel_max - self.f0_mel_min) + 1
 
         # use 0 or 1
@@ -52,7 +54,7 @@ class FeatureInput(object):
     def coarse_f0_ts(self, f0):
         f0_mel = 1127 * (1 + f0 / 700).log()
         f0_mel[f0_mel > 0] = (f0_mel[f0_mel > 0] - self.f0_mel_min) * (
-            self.f0_bin - 2
+                self.f0_bin - 2
         ) / (self.f0_mel_max - self.f0_mel_min) + 1
 
         # use 0 or 1

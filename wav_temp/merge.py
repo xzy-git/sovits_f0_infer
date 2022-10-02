@@ -1,4 +1,5 @@
 import os
+
 from pydub import AudioSegment
 
 
@@ -6,11 +7,11 @@ def add_db(music1, music2):
     music1_db = music1.dBFS
     music2_db = music2.dBFS
     # 调整两个音频的响度一致
-    dbplus = music1_db - music2_db
-    if dbplus > 0:
-        music2 += abs(dbplus)
-    elif dbplus < 0:
-        music2 -= abs(dbplus)
+    db_plus = music1_db - music2_db
+    if db_plus > 0:
+        music2 += abs(db_plus)
+    elif db_plus < 0:
+        music2 -= abs(db_plus)
     return music2
 
 
