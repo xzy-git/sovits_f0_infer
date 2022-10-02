@@ -7,4 +7,11 @@
   + 使用midi而非f0似乎会导致模型音高不准 目前修改回使用F0
 + 采用了VISinger中的PitchPredictor，引入了PitchLoss修正音高
   + 似乎效果不是很明显，或许加的方式不太对
-  
+  + 
+## 改版说明
++ 基于原版进行了一定更改，使得程序可以直接从系统默认麦克风录音，并在处理后由系统默认扬声器输出
++ 致命缺陷：模型对于长度过短的音频处理能力有限，录音不得短于2秒，这使得输出音频不可避免存在2-3秒延迟
+
+## 改版后使用
++ 模型与配置文件位置同原版，main.py 内参数通原版，需要额外新建一个“record”文件夹在项目根目录，不需要 raw 和 results 文件夹
++ recorder.py 内的 [RECORD_SECONDS](https://github.com/wild233-sys/sovits_f0_infer-colab/blob/sovits_f0_infer_realTime/recorder.py#:~:text=CHUNK%20%3D%20256-,RECORD_SECONDS%20%3D%202,-WAVE_OUTPUT_FILENAME%20%3D%20filepath) 为每个录音切片的时长，过短导致模型无法处理，过长会导致变声延迟过大
