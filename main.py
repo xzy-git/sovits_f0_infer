@@ -6,6 +6,7 @@ import soundfile
 import torch
 import torchaudio
 
+import config
 import infer_tool
 import utils
 from wav_temp import merge
@@ -22,8 +23,8 @@ id_list = [3]
 
 # 每次合成长度，建议30s内，太高了爆显存(gtx1066一次30s以内）
 cut_time = 20
-model_name = "220_epochs"  # 模型名称（pth文件夹下）
-config_name = "sovits_pre.json"  # 模型配置（config文件夹下）
+model_name = config.model_name
+config_name = config.config_name
 
 # 以下内容无需修改
 hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")

@@ -6,6 +6,7 @@ import torch
 import torchaudio
 from pydub import AudioSegment
 
+import config
 import hubert_model
 import utils
 from models import SynthesizerTrn
@@ -13,8 +14,8 @@ from preprocess_wave import FeatureInput
 
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-model_name = "220_epochs"  # 模型名称（pth文件夹下）
-config_name = "sovits_pre.json"  # 模型配置（config文件夹下）
+model_name = config.model_name
+config_name = config.config_name
 hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")
 
 
