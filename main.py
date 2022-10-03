@@ -1,5 +1,6 @@
 import os
 import shutil
+import subprocess
 
 import demjson
 import numpy as np
@@ -18,21 +19,19 @@ if not os.path.exists("./raw"):
     os.mkdir("./raw")
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["无问"]
+clean_names = ["宁夏"]
 # bgm、trans分别对应歌曲列表，若能找到相应文件、则自动合并伴奏，若找不到bgm，则输出干声（不使用bgm合成多首歌时，可只随意填写一个不存在的bgm名）
 bgm_names = ["bgm1"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
 trans = [0]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
-id_list = [0]
+id_list = [3]
 
 # 每次合成长度，建议30s内，太高了爆显存(gtx1066一次30s以内）
 cut_time = 30
 model_name = config.model_name
 config_name = config.config_name
 
-# 抽卡次数
-roll = 5
 # 以下内容无需修改
 hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -61,7 +60,11 @@ for clean_name, bgm_name, tran in zip(clean_names, bgm_names, trans):
         infer_tool.del_file("./wav_temp/output/")
         # 源音频切割方案
         if audio_time > 1.3 * int(cut_time):
-            infer_tool.cut(int(cut_time), raw_audio_path, out_audio_name, "./wav_temp/input")
+            # infer_tool.cut(int(cut_time), raw_audio_path, out_audio_name, "./wav_temp/input")
+            proc = subprocess.Popen(
+                f"python slicer.py {raw_audio_path} --out_name {out_audio_name} --out ./wav_temp/input  --db_thresh -30",
+                shell=True)
+            proc.wait()
         else:
             shutil.copy(f"./raw/{clean_name}.wav", f"./wav_temp/input/{out_audio_name}-00.wav")
 
