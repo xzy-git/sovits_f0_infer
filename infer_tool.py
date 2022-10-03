@@ -6,45 +6,38 @@ import torch
 import torchaudio
 from pydub import AudioSegment
 
+import hubert_model
+import utils
+from models import SynthesizerTrn
+from preprocess_wave import FeatureInput
+
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
-
-def get_units(path, hubert_soft):
-    source, sr = torchaudio.load(path)
-    source = torchaudio.functional.resample(source, sr, 16000)
-    source = source.unsqueeze(0).to(dev)
-    with torch.inference_mode():
-        units = hubert_soft.units(source)
-        return units
+model_name = "220_epochs"  # 模型名称（pth文件夹下）
+config_name = "sovits_pre.json"  # 模型配置（config文件夹下）
+hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")
 
 
-def transcribe(path, length, transform, feature_input):
-    feature_pit = feature_input.compute_f0(path)
-    feature_pit = feature_pit * 2 ** (transform / 12)
-    feature_pit = resize2d_f0(feature_pit, length)
-    coarse_pit = feature_input.coarse_f0(feature_pit)
-    return coarse_pit
+def load_model(model_name):
+    net_g_ms = SynthesizerTrn(
+        178,
+        hps_ms.data.filter_length // 2 + 1,
+        hps_ms.train.segment_size // hps_ms.data.hop_length,
+        n_speakers=hps_ms.data.n_speakers,
+        **hps_ms.model)
+    _ = utils.load_checkpoint(f"pth/{model_name}.pth", net_g_ms, None)
+    _ = net_g_ms.eval().to(dev)
+    return net_g_ms
 
 
-def infer(file_name, speaker_id, tran, target_sample, net_g_ms, hubert_soft, feature_input):
-    source_path = "./wav_temp/input/" + file_name
-    audio, sample_rate = torchaudio.load(source_path)
-    input_size = audio.shape[-1]
-
-    sid = torch.LongTensor([int(speaker_id)]).to(dev)
-    soft = get_units(source_path, hubert_soft).squeeze(0).cpu().numpy()
-    pitch = transcribe(source_path, soft.shape[0], tran, feature_input)
-    pitch = torch.LongTensor(pitch).unsqueeze(0).to(dev)
-    stn_tst = torch.FloatTensor(soft)
-    with torch.no_grad():
-        x_tst = stn_tst.unsqueeze(0).to(dev)
-        x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).to(dev)
-        audio = \
-            net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid, noise_scale=.3, noise_scale_w=0.5,
-                           length_scale=1)[0][
-                0, 0].data.float().cpu().numpy()
-    soundfile.write("./wav_temp/output/" + file_name, audio,
-                    int(audio.shape[0] / input_size * target_sample))
+# 加载sovits模型
+net_g_ms = load_model(model_name)
+# 获取config参数
+target_sample = hps_ms.data.sampling_rate
+# 自行下载hubert-soft-0d54a1f4.pt改名为hubert.pt放置于pth文件夹下
+# https://github.com/bshall/hubert/releases/tag/v0.1
+hubert_soft = hubert_model.hubert_soft('pth/hubert.pt')
+feature_input = FeatureInput(hps_ms.data.sampling_rate, hps_ms.data.hop_length)
 
 
 def resize2d_f0(x, target_len):
@@ -54,6 +47,39 @@ def resize2d_f0(x, target_len):
                        source)
     res = np.nan_to_num(target)
     return res
+
+
+def get_units(audio, sr):
+    source = torchaudio.functional.resample(audio, sr, 16000)
+    source = source.unsqueeze(0).to(dev)
+    with torch.inference_mode():
+        units = hubert_soft.units(source)
+        return units
+
+
+def transcribe(source_path, length, transform):
+    feature_pit = feature_input.compute_f0(source_path)
+    feature_pit = feature_pit * 2 ** (transform / 12)
+    feature_pit = resize2d_f0(feature_pit, length)
+    coarse_pit = feature_input.coarse_f0(feature_pit)
+    return coarse_pit
+
+
+def infer(source_path, speaker_id, tran):
+    audio, sample_rate = torchaudio.load(source_path)
+    sid = torch.LongTensor([int(speaker_id)]).to(dev)
+    soft = get_units(audio, sample_rate).squeeze(0).cpu().numpy()
+    pitch = transcribe(source_path, soft.shape[0], tran)
+    pitch = torch.LongTensor(pitch).unsqueeze(0).to(dev)
+    stn_tst = torch.FloatTensor(soft)
+    with torch.no_grad():
+        x_tst = stn_tst.unsqueeze(0).to(dev)
+        x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).to(dev)
+        audio = \
+            net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid, noise_scale=.3, noise_scale_w=0.5,
+                           length_scale=1)[0][
+                0, 0].data.float().cpu().numpy()
+    return audio, audio.shape[0]
 
 
 # python删除文件的方法 os.remove(path)path指的是文件的绝对路径,如：
@@ -75,8 +101,9 @@ def cut(c_time, file_path, vocal_name, out_dir):
 
 def wav_resample(audio_path, tar_sample):
     raw_audio, raw_sample_rate = torchaudio.load(audio_path)
-    audio_22050 = torchaudio.transforms.Resample(orig_freq=raw_sample_rate, new_freq=tar_sample)(raw_audio)[0]
-    soundfile.write(audio_path, audio_22050, tar_sample)
+    tar_audio = torchaudio.transforms.Resample(orig_freq=raw_sample_rate, new_freq=tar_sample)(raw_audio)[0]
+    soundfile.write(audio_path, tar_audio, tar_sample)
+    return tar_audio, tar_sample
 
 
 def fill_a_to_b(a, b):
