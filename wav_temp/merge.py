@@ -43,7 +43,7 @@ def run(vocals_name, bgm_name, out_name):
     file_list = os.listdir("./wav_temp/output")
     in_files = [len(file_list)]
     for i in range(0, len(file_list)):
-        in_files.append(f"./wav_temp/output/{vocals_name}-%s.wav" % i)
+        in_files.append(f"./wav_temp/output/{vocals_name}-%s.wav" % str(i).zfill(2))
     out_path = f'./results/{vocals_name}.wav'
     in_files.append(out_path)
     wav_combine(in_files)

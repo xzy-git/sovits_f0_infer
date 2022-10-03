@@ -65,6 +65,19 @@ def transcribe(source_path, length, transform):
     return coarse_pit
 
 
+def calc_error(x, y):
+    sum_x = 0
+    sum_y = 0
+    for i in range(min(len(x), len(y))):
+        if x[i] > 0 and y[i] > 0:
+            sum_x += x[i]
+            sum_y += y[i]
+    if sum_x == 0:
+        sum_x = 1
+        sum_y = 1
+    return "%.2f%%" % abs((sum_y - sum_x) / sum_x * 100)
+
+
 def infer(source_path, speaker_id, tran):
     audio, sample_rate = torchaudio.load(source_path)
     sid = torch.LongTensor([int(speaker_id)]).to(dev)
@@ -94,9 +107,10 @@ def cut(c_time, file_path, vocal_name, out_dir):
     total = int(audio_segment.duration_seconds / c_time)  # 计算音频切片后的个数
     for i in range(total):
         # 将音频10s切片，并以顺序进行命名
-        audio_segment[i * c_time * 1000:(i + 1) * c_time * 1000].export(f"{out_dir}/{vocal_name}-{i}.wav",
+        audio_segment[i * c_time * 1000:(i + 1) * c_time * 1000].export(f"{out_dir}/{vocal_name}-{str(i).zfill(2)}.wav",
                                                                         format="wav")
-    audio_segment[total * c_time * 1000:].export(f"{out_dir}/{vocal_name}-{total}.wav", format="wav")  # 缺少结尾的音频片段
+    audio_segment[total * c_time * 1000:].export(f"{out_dir}/{vocal_name}-{str(total).zfill(2)}.wav",
+                                                 format="wav")  # 缺少结尾的音频片段
 
 
 def wav_resample(audio_path, tar_sample):
@@ -110,3 +124,12 @@ def fill_a_to_b(a, b):
     if len(a) < len(b):
         for _ in range(0, len(b) - len(a)):
             a.append(a[0])
+
+
+def val_pitch(in_path, tran):
+    audio, sample_rate = torchaudio.load(in_path)
+    soft = get_units(audio, sample_rate).squeeze(0).cpu().numpy()
+    input_pitch = transcribe(in_path, soft.shape[0], tran)
+    input_pitch = input_pitch.astype(float)
+    input_pitch[input_pitch == 1] = np.nan
+    return input_pitch
