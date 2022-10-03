@@ -2,6 +2,7 @@ import os
 import shutil
 
 import demjson
+import numpy as np
 import soundfile
 import torch
 import torchaudio
@@ -17,19 +18,21 @@ if not os.path.exists("./raw"):
     os.mkdir("./raw")
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["多声线测试"]
+clean_names = ["无问"]
 # bgm、trans分别对应歌曲列表，若能找到相应文件、则自动合并伴奏，若找不到bgm，则输出干声（不使用bgm合成多首歌时，可只随意填写一个不存在的bgm名）
 bgm_names = ["bgm1"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
-trans = [-6]  # 加减半音数（可为正负）
+trans = [0]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
-id_list = [0, 2]
+id_list = [0]
 
 # 每次合成长度，建议30s内，太高了爆显存(gtx1066一次30s以内）
-cut_time = 20
+cut_time = 30
 model_name = config.model_name
 config_name = config.config_name
 
+# 抽卡次数
+roll = 5
 # 以下内容无需修改
 hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -41,6 +44,7 @@ target_sample = hps_ms.data.sampling_rate
 infer_tool.fill_a_to_b(bgm_names, clean_names)
 infer_tool.fill_a_to_b(trans, clean_names)
 
+print("mis连续超过10%时，考虑升降半音\n")
 # 遍历列表
 for clean_name, bgm_name, tran in zip(clean_names, bgm_names, trans):
     infer_tool.wav_resample(f'./raw/{clean_name}.wav', target_sample)
@@ -67,14 +71,15 @@ for clean_name, bgm_name, tran in zip(clean_names, bgm_names, trans):
         for file_name in file_list:
             source_path = "./wav_temp/input/" + file_name
             out_audio, out_sr = infer_tool.infer(source_path, speaker_id, tran)
-            out_path = "./wav_temp/output/" + file_name
+            out_path = f"./wav_temp/output/{file_name}"
             soundfile.write(out_path, out_audio, target_sample)
 
-            input_pitch = infer_tool.val_pitch(source_path, tran)
-            output_pitch = infer_tool.val_pitch(out_path, 0)
-            mistake = infer_tool.calc_error(input_pitch, output_pitch)
+            mistake = infer_tool.calc_error(source_path, out_path, tran)
             val_list.append(mistake)
             count += 1
-            print(f"{file_name}: {round(100 * count / len_file_list, 2)}%   mis:{mistake}\n")
-        print(f"分段误差参考：1%优秀，3%左右合理，5%-8%可以接受\n{val_list}")
+            print(f"{file_name}: {round(100 * count / len_file_list, 2)}%   mis:{mistake}%")
+        print(f"\n分段误差参考：1%优秀，3%左右合理，5%-8%可以接受\n{val_list}")
+        print(f"方差为： {round(float(np.var(val_list)), 2)}")
+        if os.path.exists(f"./wav_temp/output/temp.wav"):
+            os.remove(f"./wav_temp/output/temp.wav")
         merge.run(out_audio_name, bgm_name, out_audio_name)

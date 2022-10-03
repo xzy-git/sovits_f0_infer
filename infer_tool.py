@@ -65,17 +65,28 @@ def transcribe(source_path, length, transform):
     return coarse_pit
 
 
-def calc_error(x, y):
+def val_pitch(in_path, tran):
+    audio, sample_rate = torchaudio.load(in_path)
+    soft = get_units(audio, sample_rate).squeeze(0).cpu().numpy()
+    input_pitch = transcribe(in_path, soft.shape[0], tran)
+    input_pitch = input_pitch.astype(float)
+    input_pitch[input_pitch == 1] = np.nan
+    return input_pitch
+
+
+def calc_error(in_path, out_path, tran):
+    input_pitch = val_pitch(in_path, tran)
+    output_pitch = val_pitch(out_path, 0)
     sum_x = 0
     sum_y = 0
-    for i in range(min(len(x), len(y))):
-        if x[i] > 0 and y[i] > 0:
-            sum_x += x[i]
-            sum_y += y[i]
+    for i in range(min(len(input_pitch), len(output_pitch))):
+        if input_pitch[i] > 0 and output_pitch[i] > 0:
+            sum_x += input_pitch[i]
+            sum_y += output_pitch[i]
     if sum_x == 0:
         sum_x = 1
         sum_y = 1
-    return "%.2f%%" % abs((sum_y - sum_x) / sum_x * 100)
+    return round(float((sum_y - sum_x) / sum_x * 100), 2)
 
 
 def infer(source_path, speaker_id, tran):
@@ -89,7 +100,7 @@ def infer(source_path, speaker_id, tran):
         x_tst = stn_tst.unsqueeze(0).to(dev)
         x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).to(dev)
         audio = \
-            net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid, noise_scale=.3, noise_scale_w=0.5,
+            net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid, noise_scale=0.3, noise_scale_w=0.5,
                            length_scale=1)[0][
                 0, 0].data.float().cpu().numpy()
     return audio, audio.shape[0]
@@ -124,12 +135,3 @@ def fill_a_to_b(a, b):
     if len(a) < len(b):
         for _ in range(0, len(b) - len(a)):
             a.append(a[0])
-
-
-def val_pitch(in_path, tran):
-    audio, sample_rate = torchaudio.load(in_path)
-    soft = get_units(audio, sample_rate).squeeze(0).cpu().numpy()
-    input_pitch = transcribe(in_path, soft.shape[0], tran)
-    input_pitch = input_pitch.astype(float)
-    input_pitch[input_pitch == 1] = np.nan
-    return input_pitch
