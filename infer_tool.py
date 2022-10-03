@@ -19,25 +19,24 @@ config_name = config.config_name
 hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")
 
 
-def load_model(model_name):
-    net_g_ms = SynthesizerTrn(
+def load_model():
+    n_g_ms = SynthesizerTrn(
         178,
         hps_ms.data.filter_length // 2 + 1,
         hps_ms.train.segment_size // hps_ms.data.hop_length,
         n_speakers=hps_ms.data.n_speakers,
         **hps_ms.model)
-    _ = utils.load_checkpoint(f"pth/{model_name}.pth", net_g_ms, None)
-    _ = net_g_ms.eval().to(dev)
-    return net_g_ms
+    _ = utils.load_checkpoint(f"pth/{model_name}", n_g_ms, None)
+    _ = n_g_ms.eval().to(dev)
+    return n_g_ms
 
 
 # 加载sovits模型
-net_g_ms = load_model(model_name)
+net_g_ms = load_model()
 # 获取config参数
 target_sample = hps_ms.data.sampling_rate
-# 自行下载hubert-soft-0d54a1f4.pt改名为hubert.pt放置于pth文件夹下
-# https://github.com/bshall/hubert/releases/tag/v0.1
-hubert_soft = hubert_model.hubert_soft('pth/hubert.pt')
+
+hubert_soft = hubert_model.hubert_soft(f'pth/{config.hubert_name}')
 feature_input = FeatureInput(hps_ms.data.sampling_rate, hps_ms.data.hop_length)
 
 

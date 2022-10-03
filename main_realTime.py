@@ -20,9 +20,9 @@ def play(data, fs):
 
 # 这个不改
 clean_name = 1
-tran = 0
+tran = 5
 # 改成相应id
-speaker_id = 2
+speaker_id = 3
 
 # 每次合成长度，建议30s内，太高了爆掉显存(gtx1066一次15s以内）
 model_name = config.model_name
