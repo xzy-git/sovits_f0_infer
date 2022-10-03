@@ -18,7 +18,8 @@ def add_db(music1, music2):
 def wav_mix(vocals_name, bgm_name, out_name):
     bgm = AudioSegment.from_wav(f"./raw/{bgm_name}.wav")
     vits = AudioSegment.from_wav(f"./results/{vocals_name}.wav")
-    vocals = AudioSegment.from_wav(f"./raw/{vocals_name}.wav")
+    clean_name = vocals_name.split("_")[-2]
+    vocals = AudioSegment.from_wav(f"./raw/{clean_name}.wav")
     vits = add_db(vocals, vits)
     output = bgm.overlay(vits)
     # save the result
