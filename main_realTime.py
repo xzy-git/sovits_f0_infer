@@ -5,7 +5,7 @@ import time
 import sounddevice as sd
 import torch
 
-import config
+
 import infer_tool
 import utils
 
@@ -25,8 +25,9 @@ tran = 5
 speaker_id = 3
 
 # 每次合成长度，建议30s内，太高了爆掉显存(gtx1066一次15s以内）
-model_name = config.model_name
-config_name = config.config_name
+model_name = "395_epochs.pth"  # 模型名称（pth文件夹下）
+config_name = "sovits_pre.json"  # 模型配置（config文件夹下）
+
 
 # 以下内容无需修改
 hps_ms = utils.get_hparams_from_file(f"configs/{config_name}")
@@ -45,7 +46,7 @@ while True:
     else:
         continue
     try:
-        infer_tool.wav_resample(f'./record/{clean_name}.wav', target_sample)
+        infer_tool.format_wav(f'./record/{clean_name}.wav', target_sample)
         source_path = f"./record/{clean_name}.wav"
         out_audio, out_sr = infer_tool.infer(source_path, speaker_id, tran)
         threading.Thread(target=play, args=(out_audio, target_sample)).start()
