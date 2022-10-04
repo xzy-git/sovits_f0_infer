@@ -150,7 +150,6 @@ def main():
         os.makedirs(args.out)
     start = 0
     end_id = 0
-    print(chunks)
     for i, chunk in enumerate(chunks):
         end = chunk
         soundfile.write(os.path.join(out, f'%s-%s.wav' % (args.out_name, str(i).zfill(2))), audio[start:end], sr)

@@ -22,7 +22,7 @@ def wav_mix(vocals_name, bgm_name, out_name):
     vocals = AudioSegment.from_wav(f"./raw/{clean_name}.wav")
     vits = add_db(vocals, vits)
     output = bgm.overlay(vits)
-    # save the result
+    # save the results
     output.export(f"./results/{out_name}.mp3", format="mp3")
 
 
