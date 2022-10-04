@@ -81,12 +81,12 @@ def calc_error(in_path, out_path, tran):
     sum_y = 0
     for i in range(min(len(input_pitch), len(output_pitch))):
         if input_pitch[i] > 0 and output_pitch[i] > 0:
-            sum_x += input_pitch[i]
-            sum_y += output_pitch[i]
+            sum_x += 1
+            sum_y += abs(output_pitch[i] - input_pitch[i]) / input_pitch[i]
     if sum_x == 0:
         sum_x = 1
         sum_y = 1
-    return round(float((sum_y - sum_x) / sum_x * 100), 2)
+    return round(float(abs(sum_y) / sum_x * 100), 2)
 
 
 def infer(source_path, speaker_id, tran):

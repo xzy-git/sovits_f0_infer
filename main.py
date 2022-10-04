@@ -19,16 +19,16 @@ if not os.path.exists("./raw"):
     os.mkdir("./raw")
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["锁麟囊"]
+clean_names = ["时间煮雨"]
 # bgm、trans分别对应歌曲列表，若能找到相应文件、则自动合并伴奏，若找不到bgm，则输出干声（不使用bgm合成多首歌时，可只随意填写一个不存在的bgm名）
 bgm_names = ["bgm1"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
 trans = [0]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
-id_list = [2]
+id_list = [3]
 
 # 每次合成长度，建议30s内，太高了爆显存(gtx1066一次30s以内）
-cut_time = 20
+cut_time = 30
 model_name = config.model_name
 config_name = config.config_name
 
@@ -82,7 +82,6 @@ for clean_name, bgm_name, tran in zip(clean_names, bgm_names, trans):
             count += 1
             print(f"{file_name}: {round(100 * count / len_file_list, 2)}%   mis:{mistake}%")
         print(f"\n分段误差参考：1%优秀，3%左右合理，5%-8%可以接受\n{val_list}")
-        print(f"方差为： {round(float(np.var(val_list)), 2)}")
         if os.path.exists(f"./wav_temp/output/temp.wav"):
             os.remove(f"./wav_temp/output/temp.wav")
         merge.run(out_audio_name, bgm_name, out_audio_name)
