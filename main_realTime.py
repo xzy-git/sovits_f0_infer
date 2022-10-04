@@ -11,7 +11,7 @@ import utils
 
 if not os.path.exists("./record/"):
     os.mkdir("./record/")
-infer_tool.del_file("./record/")
+infer_tool.del_temp_wav("./record/")
 
 
 def play(data, fs):

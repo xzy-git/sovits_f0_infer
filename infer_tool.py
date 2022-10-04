@@ -4,7 +4,6 @@ import numpy as np
 import soundfile
 import torch
 import torchaudio
-from pydub import AudioSegment
 
 import hubert_model
 import utils
@@ -108,21 +107,9 @@ def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
 
 
 # python删除文件的方法 os.remove(path)path指的是文件的绝对路径,如：
-def del_file(path_data):
-    for i in os.listdir(path_data):  # os.listdir(path_data)#返回一个列表，里面是当前目录下面的所有东西的相对路径
-        os.remove(path_data + i)
-
-
-def cut(c_time, file_path, vocal_name, out_dir):
-    audio_segment = AudioSegment.from_file(file_path, format='wav')
-
-    total = int(audio_segment.duration_seconds / c_time)  # 计算音频切片后的个数
-    for i in range(total):
-        # 将音频10s切片，并以顺序进行命名
-        audio_segment[i * c_time * 1000:(i + 1) * c_time * 1000].export(f"{out_dir}/{vocal_name}-{str(i).zfill(2)}.wav",
-                                                                        format="wav")
-    audio_segment[total * c_time * 1000:].export(f"{out_dir}/{vocal_name}-{str(total).zfill(2)}.wav",
-                                                 format="wav")  # 缺少结尾的音频片段
+def del_temp_wav(path_data):
+    for i in get_end_file(path_data, "wav"):  # os.listdir(path_data)#返回一个列表，里面是当前目录下面的所有东西的相对路径
+        os.remove(i)
 
 
 def format_wav(audio_path, tar_sample):
@@ -136,3 +123,9 @@ def fill_a_to_b(a, b):
     if len(a) < len(b):
         for _ in range(0, len(b) - len(a)):
             a.append(a[0])
+
+
+def mkdir(paths: list):
+    for path in paths:
+        if not os.path.exists(path):
+            os.mkdir(path)
