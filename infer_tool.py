@@ -104,7 +104,7 @@ def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
             net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid, noise_scale=0.3, noise_scale_w=0.5,
                            length_scale=1)[0][
                 0, 0].data.float().cpu().numpy()
-    return audio, audio.shape[0]
+    return audio, audio.shape[-1]
 
 
 # python删除文件的方法 os.remove(path)path指的是文件的绝对路径,如：

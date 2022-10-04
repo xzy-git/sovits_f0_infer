@@ -1,3 +1,4 @@
+import logging
 import os
 import shutil
 import subprocess
@@ -10,6 +11,7 @@ import torchaudio
 import infer_tool
 from wav_temp import merge
 
+logging.getLogger('numba').setLevel(logging.WARNING)
 # 自行下载hubert-soft-0d54a1f4.pt改名为hubert.pt放置于pth文件夹下
 # https://github.com/bshall/hubert/releases/tag/v0.1
 if not os.path.exists("./pth"):
@@ -18,17 +20,17 @@ if not os.path.exists("./raw"):
     os.mkdir("./raw")
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["时间煮雨"]
+clean_names = ["嘘月"]
 # bgm、trans分别对应歌曲列表，若能找到相应文件、则自动合并伴奏，若找不到bgm，则输出干声（不使用bgm合成多首歌时，可只随意填写一个不存在的bgm名）
-bgm_names = ["bgm1"]
+bgm_names = ["嘘月bgm"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
-trans = [0]  # 加减半音数（可为正负）
+trans = [-9]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
-id_list = [3]
+id_list = [0]
 
 # 每次合成长度，建议30s内，太高了爆显存(gtx1066一次30s以内）
 cut_time = 30
-model_name = "395_epochs.pth"  # 模型名称（pth文件夹下）
+model_name = "476_epochs.pth"  # 模型名称（pth文件夹下）
 config_name = "sovits_pre.json"  # 模型配置（config文件夹下）
 
 # 加载sovits模型
@@ -74,7 +76,6 @@ for clean_name, bgm_name, tran in zip(clean_names, bgm_names, trans):
             out_audio, out_sr = infer_tool.infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input)
             out_path = f"./wav_temp/output/{file_name}"
             soundfile.write(out_path, out_audio, target_sample)
-
             mistake = infer_tool.calc_error(source_path, out_path, tran, hubert_soft, feature_input)
             val_list.append(mistake)
             count += 1

@@ -409,7 +409,6 @@ class SynthesizerTrn(nn.Module):
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, pitch)
         pred_pitch, pitch_embedding = self.pitch_net(x, x_mask)
         x = x + pitch_embedding
-        # print(pred_pitch)
         gt_lf0 = torch.log(440 * (2 ** ((pitch - 69) / 12)))
 
         # print(gt_lf0)
@@ -426,9 +425,6 @@ class SynthesizerTrn(nn.Module):
         w_ceil = torch.ceil(w)
 
         w_ceil = w_ceil * 0 + 2
-        # for index in range(w_ceil.shape[2]):
-        #   if index%4 == 0:
-        #     w_ceil[0,0,index] = 1.0
 
         for i in range(w_ceil.shape[2]):
             sep = 1 / 0.14
