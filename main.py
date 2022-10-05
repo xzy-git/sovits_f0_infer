@@ -1,6 +1,5 @@
 import logging
 import os
-import shutil
 import subprocess
 
 import demjson
@@ -17,13 +16,13 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 # https://github.com/bshall/hubert/releases/tag/v0.1
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["嘘月"]
+clean_names = ["追光者"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
 trans = [-9]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
 id_list = [0]
 
-model_name = "476_epochs.pth"  # 模型名称（pth文件夹下）
+model_name = "561_epochs.pth"  # 模型名称（pth文件夹下）
 config_name = "sovits_pre.json"  # 模型配置（config文件夹下）
 
 # 加载sovits模型、参数
@@ -33,7 +32,7 @@ target_sample = hps_ms.data.sampling_rate
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 infer_tool.fill_a_to_b(trans, clean_names)  # 自动补齐
 input_wav_path = "./wav_temp/input"
-out_wav_path = "./wav_temp/out"
+out_wav_path = "./wav_temp/output"
 infer_tool.mkdir([input_wav_path, out_wav_path])
 print("mis连续超过10%时，考虑升降半音\n")
 # 遍历列表
@@ -47,14 +46,11 @@ for clean_name, tran in zip(clean_names, trans):
         val_list = []
         # 清除缓存文件
         infer_tool.del_temp_wav("./wav_temp")
-        # 源音频切割方案
-        if audio_time > 1.3 * int(cut_time):
-            proc = subprocess.Popen(
-                f"python slicer.py {raw_audio_path} --out_name {out_audio_name} --out {input_wav_path}  --db_thresh -30",
-                shell=True)
-            proc.wait()
-        else:
-            shutil.copy(f"./raw/{clean_name}.wav", f"{input_wav_path}/{out_audio_name}-00.wav")
+
+        proc = subprocess.Popen(
+            f"python slicer.py {raw_audio_path} --out_name {out_audio_name} --out {input_wav_path}  --db_thresh -30",
+            shell=True)
+        proc.wait()
 
         count = 0
         file_list = os.listdir(input_wav_path)

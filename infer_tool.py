@@ -77,15 +77,19 @@ def val_pitch(in_path, tran, hubert_soft, feature_input):
 def calc_error(in_path, out_path, tran, hubert_soft, feature_input):
     input_pitch = val_pitch(in_path, tran, hubert_soft, feature_input)
     output_pitch = val_pitch(out_path, 0, hubert_soft, feature_input)
+    num_nan = np.where(np.isnan(input_pitch))[0].shape
+    print(num_nan[0] / len(input_pitch))
     sum_x = 0
     sum_y = 0
-    for i in range(min(len(input_pitch), len(output_pitch))):
-        if input_pitch[i] > 0 and output_pitch[i] > 0:
-            sum_x += 1
-            sum_y += abs(output_pitch[i] - input_pitch[i]) / input_pitch[i]
+    if num_nan[0] / len(input_pitch) > 0.7:
+        sum_x, sum_y = 1, 0
+    else:
+        for i in range(min(len(input_pitch), len(output_pitch))):
+            if input_pitch[i] > 0 and output_pitch[i] > 0:
+                sum_x += 1
+                sum_y += abs(output_pitch[i] - input_pitch[i]) / input_pitch[i]
     if sum_x == 0:
-        sum_x = 1
-        sum_y = 1
+        sum_x, sum_y = 1, 0
     return round(float(abs(sum_y) / sum_x * 100), 2)
 
 
