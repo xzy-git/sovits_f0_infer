@@ -78,7 +78,6 @@ def calc_error(in_path, out_path, tran, hubert_soft, feature_input):
     input_pitch = val_pitch(in_path, tran, hubert_soft, feature_input)
     output_pitch = val_pitch(out_path, 0, hubert_soft, feature_input)
     num_nan = np.where(np.isnan(input_pitch))[0].shape
-    print(num_nan[0] / len(input_pitch))
     sum_x = 0
     sum_y = 0
     if num_nan[0] / len(input_pitch) > 0.7:
@@ -98,6 +97,9 @@ def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
     sid = torch.LongTensor([int(speaker_id)]).to(dev)
     soft = get_units(audio, sample_rate, hubert_soft).squeeze(0).cpu().numpy()
     pitch = transcribe(source_path, soft.shape[0], tran, feature_input)
+    num_nan = np.sum(pitch == 1)
+    if num_nan / len(pitch) > 0.7:
+        pitch[pitch != 1] = 1
     pitch = torch.LongTensor(pitch).unsqueeze(0).to(dev)
     stn_tst = torch.FloatTensor(soft)
     with torch.no_grad():

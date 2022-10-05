@@ -18,7 +18,7 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
 clean_names = ["追光者"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
-trans = [-9]  # 加减半音数（可为正负）
+trans = [-10]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
 id_list = [0]
 
