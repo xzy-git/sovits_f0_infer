@@ -87,7 +87,7 @@ def get_unit_pitch(in_path, tran, hubert_soft, feature_input):
     return soft, input_pitch
 
 
-def pitch(ff):
+def f0_to_pitch(ff):
     f0_pitch = 69 + 12 * np.log2(ff / 440)
     return f0_pitch
 
@@ -102,7 +102,7 @@ def calc_error(in_path, out_path, tran, feature_input):
     else:
         for i in range(min(len(input_pitch), len(output_pitch))):
             if input_pitch[i] > 0 and output_pitch[i] > 0:
-                sum_y.append(abs(pitch(output_pitch[i]) - (pitch(input_pitch[i]) + tran)))
+                sum_y.append(abs(f0_to_pitch(output_pitch[i]) - (f0_to_pitch(input_pitch[i]) + tran)))
         num_y = 0
         for x in sum_y:
             num_y += x
@@ -113,8 +113,8 @@ def calc_error(in_path, out_path, tran, feature_input):
 
 def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
     sid = torch.LongTensor([int(speaker_id)]).to(dev)
-    soft, input_pitch = get_unit_pitch(source_path, tran, hubert_soft, feature_input)
-    pitch = torch.LongTensor(input_pitch).unsqueeze(0).to(dev)
+    soft, pitch = get_unit_pitch(source_path, tran, hubert_soft, feature_input)
+    pitch = torch.LongTensor(pitch).unsqueeze(0).to(dev)
     stn_tst = torch.FloatTensor(soft)
     with torch.no_grad():
         x_tst = stn_tst.unsqueeze(0).to(dev)
@@ -123,7 +123,7 @@ def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
             net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid, noise_scale=0.3, noise_scale_w=0.5,
                            length_scale=1)[0][
                 0, 0].data.float().cpu().numpy()
-    return audio, audio.shape[-1], input_pitch
+    return audio, audio.shape[-1]
 
 
 def del_temp_wav(path_data):

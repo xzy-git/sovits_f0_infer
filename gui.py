@@ -1,10 +1,13 @@
 # coding=utf-8
+import logging
+
 import gradio as gr
 import soundfile
 import torch
 
 import infer_tool
 
+logging.getLogger('numba').setLevel(logging.WARNING)
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 spk_dict = {}
@@ -33,16 +36,13 @@ def infer(sid, audio_record, audio_upload, tran):
     else:
         return "你需要上传wav文件或使用网页内置的录音！", None
     target_sample = hps_ms.data.sampling_rate
-    audio, sampling_rate = infer_tool.format_wav(audio_path, target_sample)
-
-    source_path = audio_path
-    o_audio, out_sr = infer_tool.infer(source_path, spk_dict[sid], tran, net_g_ms, hubert_soft, feature_input)
+    o_audio, out_sr = infer_tool.infer(audio_path, spk_dict[sid], tran, net_g_ms, hubert_soft, feature_input)
     out_path = f"./out_temp.wav"
     soundfile.write(out_path, o_audio, target_sample)
 
-    mistake = infer_tool.calc_error(source_path, out_path, tran, hubert_soft, feature_input)
-    return f"误差参考：1%-3%优秀，3%-5%左右合理，5%-8%可以接受。\n若误差过大，请调整升降半音数，多次调整无明显改善说明超出音域。\n本次误差：{mistake}%", (
-        hps_ms.data.sampling_rate, o_audio)
+    mistake, var = infer_tool.calc_error(audio_path, out_path, tran, feature_input)
+    return f"分段误差参考：0.3优秀，0.5左右合理，少量0.8-1可以接受\n若偏差过大，请调整升降半音数；多次调整均过大、说明超出歌手音域\n" \
+           f"半音偏差：{mistake}\n半音方差：{var}", (target_sample, o_audio)
 
 
 app = gr.Blocks()
