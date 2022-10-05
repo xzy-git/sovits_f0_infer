@@ -14,7 +14,6 @@ def timeit(func):
         res = func(*args, **kwargs)
         print('executing \'%s\' costed %.3fs' % (func.__name__, time.time() - t))
         return res
-
     return run
 
 
