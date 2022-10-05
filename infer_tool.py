@@ -80,7 +80,7 @@ def calc_error(in_path, out_path, tran, hubert_soft, feature_input):
     num_nan = np.where(np.isnan(input_pitch))[0].shape
     sum_x = 0
     sum_y = 0
-    if num_nan[0] / len(input_pitch) > 0.7:
+    if num_nan[0] / len(input_pitch) > 0.9:
         sum_x, sum_y = 1, 0
     else:
         for i in range(min(len(input_pitch), len(output_pitch))):
@@ -98,7 +98,7 @@ def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
     soft = get_units(audio, sample_rate, hubert_soft).squeeze(0).cpu().numpy()
     pitch = transcribe(source_path, soft.shape[0], tran, feature_input)
     num_nan = np.sum(pitch == 1)
-    if num_nan / len(pitch) > 0.7:
+    if num_nan / len(pitch) > 0.9:
         pitch[pitch != 1] = 1
     pitch = torch.LongTensor(pitch).unsqueeze(0).to(dev)
     stn_tst = torch.FloatTensor(soft)
