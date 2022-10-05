@@ -29,4 +29,4 @@ def run(out_name):
     in_files.append(out_path)
     wav_combine(in_files)
     print("out vits success")
-    infer_tool.del_temp_wav("./wav_temp")
+    # infer_tool.del_temp_wav("./wav_temp")

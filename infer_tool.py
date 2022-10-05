@@ -87,17 +87,28 @@ def get_unit_pitch(in_path, tran, hubert_soft, feature_input):
     return soft, input_pitch
 
 
-def calc_error(input_pitch, out_path, hubert_soft, feature_input):
-    out_soft, output_pitch = get_unit_pitch(out_path, 0, hubert_soft, feature_input)
+def pitch(ff):
+    f0_pitch = 69 + 12 * np.log2(ff / 440)
+    return f0_pitch
+
+
+def calc_error(in_path, out_path, tran, feature_input):
+    input_pitch = feature_input.compute_f0(in_path)
+    output_pitch = feature_input.compute_f0(out_path)
+
     sum_y = []
-    if np.sum(input_pitch == 1) / len(input_pitch) > 0.9:
-        error = 0
+    if np.sum(input_pitch == 0) / len(input_pitch) > 0.9:
+        mistake, var_take = 0, 0
     else:
         for i in range(min(len(input_pitch), len(output_pitch))):
-            if input_pitch[i] > 1 and output_pitch[i] > 1:
-                sum_y.append(abs(output_pitch[i] - input_pitch[i]) / input_pitch[i])
-        error = round(float(np.var(sum_y)*100), 2)
-    return error
+            if input_pitch[i] > 0 and output_pitch[i] > 0:
+                sum_y.append(abs(pitch(output_pitch[i]) - (pitch(input_pitch[i]) + tran)))
+        num_y = 0
+        for x in sum_y:
+            num_y += x
+        mistake = round(float(num_y / len(sum_y)), 2)
+        var_take = round(float(np.std(sum_y, ddof=1)), 2)
+    return mistake, var_take
 
 
 def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
