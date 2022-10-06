@@ -104,8 +104,8 @@ def f0_to_pitch(ff):
 
 
 def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
-    s1, input_pitch = get_unit_pitch(in_path, 0, hubert_soft, feature_input)
-    s2, output_pitch = get_unit_pitch(out_path, tran, hubert_soft, feature_input)
+    s1, input_pitch = get_unit_pitch(in_path, tran, hubert_soft, feature_input)
+    s2, output_pitch = get_unit_pitch(out_path, 0, hubert_soft, feature_input)
     plt.clf()
     plt.plot(plt_pitch(input_pitch), color="#66ccff")
     plt.plot(plt_pitch(output_pitch), color="orange")
