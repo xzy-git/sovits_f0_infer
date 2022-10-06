@@ -20,8 +20,8 @@
     "c_kl": 1.0
   },
   "data": {
-    "training_files": "/content/drive/MyDrive/SingingVC/trainmul.txt",
-    "validation_files": "/content/drive/MyDrive/SingingVC/valmul.txt",
+    "training_files": "/root/sovits/filelist/train.txt",
+    "validation_files": "/root/sovits/filelist/val.txt",
     "text_cleaners": [
       "english_cleaners2"
     ],
@@ -34,7 +34,7 @@
     "mel_fmin": 0.0,
     "mel_fmax": null,
     "add_blank": true,
-    "n_speakers": 3,
+    "n_speakers": 8,
     "cleaned_text": true
   },
   "model": {
@@ -86,8 +86,11 @@
     "gin_channels": 256
   },
   "speakers": [
-    "maolei",
-    "taff",
-    "yunhao"
+    "nyaru",
+    "taffy",
+    "yunhao",
+    "jishuang",
+    "yilanqiu",
+    "opencpop"
   ]
 }

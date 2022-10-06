@@ -1,6 +1,7 @@
 import os
 import time
 
+import matplotlib.pyplot as plt
 import numpy as np
 import soundfile
 import torch
@@ -47,7 +48,7 @@ def load_model(model_path, config_path):
     _ = utils.load_checkpoint(model_path, n_g_ms, None)
     _ = n_g_ms.eval().to(dev)
     # 加载hubert
-    hubert_soft = hubert_model.hubert_soft(get_end_file("./", "pt")[0])
+    hubert_soft = hubert_model.hubert_soft(get_end_file("./pth", "pt")[0])
     feature_input = FeatureInput(hps_ms.data.sampling_rate, hps_ms.data.hop_length)
     return n_g_ms, hubert_soft, feature_input, hps_ms
 
@@ -92,10 +93,21 @@ def f0_to_pitch(ff):
     return f0_pitch
 
 
+def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
+    s1, input_pitch = get_unit_pitch(in_path, 0, hubert_soft, feature_input)
+    s2, output_pitch = get_unit_pitch(out_path, tran, hubert_soft, feature_input)
+    input_pitch = input_pitch.astype(float)
+    output_pitch = output_pitch.astype(float)
+    input_pitch[input_pitch == 1] = np.nan
+    output_pitch[output_pitch == 1] = np.nan
+    plt.plot(input_pitch)
+    plt.plot(output_pitch)
+    plt.show()
+
+
 def calc_error(in_path, out_path, tran, feature_input):
     input_pitch = feature_input.compute_f0(in_path)
     output_pitch = feature_input.compute_f0(out_path)
-
     sum_y = []
     if np.sum(input_pitch == 0) / len(input_pitch) > 0.9:
         mistake, var_take = 0, 0
@@ -106,7 +118,8 @@ def calc_error(in_path, out_path, tran, feature_input):
         num_y = 0
         for x in sum_y:
             num_y += x
-        mistake = round(float(num_y / len(sum_y)), 2)
+        len_y = len(sum_y) if len(sum_y) else 1
+        mistake = round(float(num_y / len_y), 2)
         var_take = round(float(np.std(sum_y, ddof=1)), 2)
     return mistake, var_take
 

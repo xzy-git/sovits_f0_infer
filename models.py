@@ -1,15 +1,16 @@
 import math
+import math
 
 import torch
 from torch import nn
-from torch.nn import Conv1d, ConvTranspose1d
-from torch.nn import functional as t_func
-from torch.nn.utils import weight_norm, remove_weight_norm
+from torch.nn import Conv1d, ConvTranspose1d, Conv2d
+from torch.nn import functional as F
+from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
 
 import attentions
 import commons
 import modules
-from commons import init_weights
+from commons import init_weights, get_padding
 
 
 class StochasticDurationPredictor(nn.Module):
@@ -70,7 +71,7 @@ class StochasticDurationPredictor(nn.Module):
             z_u, z1 = torch.split(z_q, [1, 1], 1)
             u = torch.sigmoid(z_u) * x_mask
             z0 = (w - u) * x_mask
-            logdet_tot_q += torch.sum((t_func.logsigmoid(z_u) + t_func.logsigmoid(-z_u)) * x_mask, [1, 2])
+            logdet_tot_q += torch.sum((F.logsigmoid(z_u) + F.logsigmoid(-z_u)) * x_mask, [1, 2])
             logq = torch.sum(-0.5 * (math.log(2 * math.pi) + (e_q ** 2)) * x_mask, [1, 2]) - logdet_tot_q
 
             logdet_tot = 0
@@ -185,6 +186,9 @@ class TextEncoder(nn.Module):
         self.n_layers = n_layers
         self.kernel_size = kernel_size
         self.p_dropout = p_dropout
+
+        # self.emb = nn.Embedding(n_vocab, hidden_channels)
+        # nn.init.normal_(self.emb.weight, 0.0, hidden_channels**-0.5)
         self.emb_pitch = nn.Embedding(256, hidden_channels)
         nn.init.normal_(self.emb_pitch.weight, 0.0, hidden_channels ** -0.5)
 
@@ -198,6 +202,9 @@ class TextEncoder(nn.Module):
         self.proj = nn.Conv1d(hidden_channels, out_channels * 2, 1)
 
     def forward(self, x, x_lengths, pitch):
+        # x = x.transpose(1,2)
+        # x = self.emb(x) * math.sqrt(self.hidden_channels) # [b, t, h]
+        # print(x.shape)
         x = x + self.emb_pitch(pitch)
         x = torch.transpose(x, 1, -1)  # [b, h, t]
         x_mask = torch.unsqueeze(commons.sequence_mask(x_lengths, x.size(2)), 1).to(x.dtype)
@@ -309,7 +316,7 @@ class Generator(torch.nn.Module):
             x = x + self.cond(g)
 
         for i in range(self.num_upsamples):
-            x = t_func.leaky_relu(x, modules.LRELU_SLOPE)
+            x = F.leaky_relu(x, modules.LRELU_SLOPE)
             x = self.ups[i](x)
             xs = None
             for j in range(self.num_kernels):
@@ -318,7 +325,7 @@ class Generator(torch.nn.Module):
                 else:
                     xs += self.resblocks[i * self.num_kernels + j](x)
             x = xs / self.num_kernels
-        x = t_func.leaky_relu(x)
+        x = F.leaky_relu(x)
         x = self.conv_post(x)
         x = torch.tanh(x)
 
@@ -330,6 +337,96 @@ class Generator(torch.nn.Module):
             remove_weight_norm(l)
         for l in self.resblocks:
             l.remove_weight_norm()
+
+
+class DiscriminatorP(torch.nn.Module):
+    def __init__(self, period, kernel_size=5, stride=3, use_spectral_norm=False):
+        super(DiscriminatorP, self).__init__()
+        self.period = period
+        self.use_spectral_norm = use_spectral_norm
+        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        self.convs = nn.ModuleList([
+            norm_f(Conv2d(1, 32, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+            norm_f(Conv2d(32, 128, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+            norm_f(Conv2d(128, 512, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+            norm_f(Conv2d(512, 1024, (kernel_size, 1), (stride, 1), padding=(get_padding(kernel_size, 1), 0))),
+            norm_f(Conv2d(1024, 1024, (kernel_size, 1), 1, padding=(get_padding(kernel_size, 1), 0))),
+        ])
+        self.conv_post = norm_f(Conv2d(1024, 1, (3, 1), 1, padding=(1, 0)))
+
+    def forward(self, x):
+        fmap = []
+
+        # 1d to 2d
+        b, c, t = x.shape
+        if t % self.period != 0:  # pad first
+            n_pad = self.period - (t % self.period)
+            x = F.pad(x, (0, n_pad), "reflect")
+            t = t + n_pad
+        x = x.view(b, c, t // self.period, self.period)
+
+        for l in self.convs:
+            x = l(x)
+            x = F.leaky_relu(x, modules.LRELU_SLOPE)
+            fmap.append(x)
+        x = self.conv_post(x)
+        fmap.append(x)
+        x = torch.flatten(x, 1, -1)
+
+        return x, fmap
+
+
+class DiscriminatorS(torch.nn.Module):
+    def __init__(self, use_spectral_norm=False):
+        super(DiscriminatorS, self).__init__()
+        norm_f = weight_norm if use_spectral_norm == False else spectral_norm
+        self.convs = nn.ModuleList([
+            norm_f(Conv1d(1, 16, 15, 1, padding=7)),
+            norm_f(Conv1d(16, 64, 41, 4, groups=4, padding=20)),
+            norm_f(Conv1d(64, 256, 41, 4, groups=16, padding=20)),
+            norm_f(Conv1d(256, 1024, 41, 4, groups=64, padding=20)),
+            norm_f(Conv1d(1024, 1024, 41, 4, groups=256, padding=20)),
+            norm_f(Conv1d(1024, 1024, 5, 1, padding=2)),
+        ])
+        self.conv_post = norm_f(Conv1d(1024, 1, 3, 1, padding=1))
+
+    def forward(self, x):
+        fmap = []
+
+        for l in self.convs:
+            x = l(x)
+            x = F.leaky_relu(x, modules.LRELU_SLOPE)
+            fmap.append(x)
+        x = self.conv_post(x)
+        fmap.append(x)
+        x = torch.flatten(x, 1, -1)
+
+        return x, fmap
+
+
+class MultiPeriodDiscriminator(torch.nn.Module):
+    def __init__(self, use_spectral_norm=False):
+        super(MultiPeriodDiscriminator, self).__init__()
+        periods = [2, 3, 5, 7, 11]
+
+        discs = [DiscriminatorS(use_spectral_norm=use_spectral_norm)]
+        discs = discs + [DiscriminatorP(i, use_spectral_norm=use_spectral_norm) for i in periods]
+        self.discriminators = nn.ModuleList(discs)
+
+    def forward(self, y, y_hat):
+        y_d_rs = []
+        y_d_gs = []
+        fmap_rs = []
+        fmap_gs = []
+        for i, d in enumerate(self.discriminators):
+            y_d_r, fmap_r = d(y)
+            y_d_g, fmap_g = d(y_hat)
+            y_d_rs.append(y_d_r)
+            y_d_gs.append(y_d_g)
+            fmap_rs.append(fmap_r)
+            fmap_gs.append(fmap_g)
+
+        return y_d_rs, y_d_gs, fmap_rs, fmap_gs
 
 
 class SynthesizerTrn(nn.Module):
@@ -394,8 +491,8 @@ class SynthesizerTrn(nn.Module):
         self.enc_q = PosteriorEncoder(spec_channels, inter_channels, hidden_channels, 5, 1, 16,
                                       gin_channels=gin_channels)
         self.flow = ResidualCouplingBlock(inter_channels, hidden_channels, 5, 1, 4, gin_channels=gin_channels)
-        self.pitch_net = PitchPredictor(n_vocab, inter_channels, hidden_channels, filter_channels, n_heads, n_layers,
-                                        kernel_size, p_dropout)
+        # self.pitch_net = PitchPredictor(n_vocab, inter_channels, hidden_channels, filter_channels, n_heads, n_layers,
+        #                                 kernel_size, p_dropout)
 
         if use_sdp:
             self.dp = StochasticDurationPredictor(hidden_channels, 192, 3, 0.5, 4, gin_channels=gin_channels)
@@ -407,11 +504,6 @@ class SynthesizerTrn(nn.Module):
 
     def infer(self, x, x_lengths, pitch, sid=None, noise_scale=1, length_scale=1, noise_scale_w=1., max_len=None):
         x, m_p, logs_p, x_mask = self.enc_p(x, x_lengths, pitch)
-        pred_pitch, pitch_embedding = self.pitch_net(x, x_mask)
-        x = x + pitch_embedding
-        gt_lf0 = torch.log(440 * (2 ** ((pitch - 69) / 12)))
-
-        # print(gt_lf0)
         if self.n_speakers > 0:
             g = self.emb_g(sid).unsqueeze(-1)  # [b, h, 1]
         else:
@@ -425,6 +517,9 @@ class SynthesizerTrn(nn.Module):
         w_ceil = torch.ceil(w)
 
         w_ceil = w_ceil * 0 + 2
+        # for index in range(w_ceil.shape[2]):
+        #   if index%4 == 0:
+        #     w_ceil[0,0,index] = 1.0
 
         for i in range(w_ceil.shape[2]):
             sep = 1 / 0.14

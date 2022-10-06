@@ -14,6 +14,7 @@ def timeit(func):
         res = func(*args, **kwargs)
         print('executing \'%s\' costed %.3fs' % (func.__name__, time.time() - t))
         return res
+
     return run
 
 
@@ -108,7 +109,7 @@ class Slicer:
             split_loc_l = split_win_l + np.argmin(abs_amp[split_win_l: split_win_l + self.win_sn])
             sil_tags.append((split_loc_l, samples.shape[0]))
         if len(sil_tags) == 0:
-            return [audio]
+            return [len(audio)]
         else:
             chunks = []
             for i in range(0, len(sil_tags)):
@@ -154,8 +155,9 @@ def main():
         soundfile.write(os.path.join(out, f'%s-%s.wav' % (args.out_name, str(i).zfill(2))), audio[start:end], sr)
         start = end
         end_id = i + 1
-    soundfile.write(os.path.join(out, f'%s-%s.wav' % (args.out_name, str(end_id).zfill(2))), audio[start:len(audio)],
-                    sr)
+    if start != len(audio):
+        soundfile.write(os.path.join(out, f'%s-%s.wav' % (args.out_name, str(end_id).zfill(2))),
+                        audio[start:len(audio)], sr)
 
 
 if __name__ == '__main__':

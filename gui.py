@@ -41,8 +41,8 @@ def infer(sid, audio_record, audio_upload, tran):
     soundfile.write(out_path, o_audio, target_sample)
 
     mistake, var = infer_tool.calc_error(audio_path, out_path, tran, feature_input)
-    return f"分段误差参考：0.3优秀，0.5左右合理，少量0.8-1可以接受\n若偏差过大，请调整升降半音数；多次调整均过大、说明超出歌手音域\n" \
-           f"半音偏差：{mistake}\n半音方差：{var}", (target_sample, o_audio)
+    return f"分段误差参考：0.3优秀，0.5左右合理，少量0.8-1可以接受\n若偏差过大，请调整升降半音数；多次调整均过大、说明超出歌手音域\n半音偏差：{mistake}\n半音方差：{var}", (
+        target_sample, o_audio)
 
 
 app = gr.Blocks()
