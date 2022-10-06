@@ -15,11 +15,11 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 # https://github.com/bshall/hubert/releases/tag/v0.1
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["祈"]
+clean_names = ["宁夏"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
 trans = [0]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
-id_list = [0, 1, 2, 3, 4]
+id_list = [3]
 
 model_name = "14_epochs.pth"  # 模型名称（pth文件夹下）
 config_name = "nyarumul.json"  # 模型配置（config文件夹下）
@@ -59,7 +59,7 @@ for clean_name, tran in zip(clean_names, trans):
             out_audio, out_sr = infer_tool.infer(raw_path, spk_id, tran, net_g_ms, hubert_soft, feature_input)
             soundfile.write(out_path, out_audio, target_sample)
 
-            # infer_tool.f0_plt(raw_path, out_path, tran, hubert_soft, feature_input)
+            infer_tool.f0_plt(raw_path, out_path, tran, hubert_soft, feature_input)
             mistake, var = infer_tool.calc_error(raw_path, out_path, tran, feature_input)
             mis_list.append(mistake)
             var_list.append(var)

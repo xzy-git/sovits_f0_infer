@@ -82,10 +82,20 @@ def get_unit_pitch(in_path, tran, hubert_soft, feature_input):
     audio, sample_rate = torchaudio.load(in_path)
     soft = get_units(audio, sample_rate, hubert_soft).squeeze(0).cpu().numpy()
     input_pitch = transcribe(in_path, soft.shape[0], tran, feature_input)
+    return soft, input_pitch
+
+
+def clean_pitch(input_pitch):
     num_nan = np.sum(input_pitch == 1)
     if num_nan / len(input_pitch) > 0.9:
         input_pitch[input_pitch != 1] = 1
-    return soft, input_pitch
+    return input_pitch
+
+
+def plt_pitch(input_pitch):
+    input_pitch = input_pitch.astype(float)
+    input_pitch[input_pitch == 1] = np.nan
+    return input_pitch
 
 
 def f0_to_pitch(ff):
@@ -96,13 +106,10 @@ def f0_to_pitch(ff):
 def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
     s1, input_pitch = get_unit_pitch(in_path, 0, hubert_soft, feature_input)
     s2, output_pitch = get_unit_pitch(out_path, tran, hubert_soft, feature_input)
-    input_pitch = input_pitch.astype(float)
-    output_pitch = output_pitch.astype(float)
-    input_pitch[input_pitch == 1] = np.nan
-    output_pitch[output_pitch == 1] = np.nan
-    plt.plot(input_pitch)
-    plt.plot(output_pitch)
-    plt.show()
+    plt.clf()
+    plt.plot(plt_pitch(input_pitch), color="#66ccff")
+    plt.plot(plt_pitch(input_pitch), color="orange")
+    plt.savefig("temp.jpg")
 
 
 def calc_error(in_path, out_path, tran, feature_input):
@@ -127,7 +134,7 @@ def calc_error(in_path, out_path, tran, feature_input):
 def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
     sid = torch.LongTensor([int(speaker_id)]).to(dev)
     soft, pitch = get_unit_pitch(source_path, tran, hubert_soft, feature_input)
-    pitch = torch.LongTensor(pitch).unsqueeze(0).to(dev)
+    pitch = torch.LongTensor(clean_pitch(pitch)).unsqueeze(0).to(dev)
     stn_tst = torch.FloatTensor(soft)
     with torch.no_grad():
         x_tst = stn_tst.unsqueeze(0).to(dev)
