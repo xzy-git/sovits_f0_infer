@@ -108,7 +108,7 @@ def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
     s2, output_pitch = get_unit_pitch(out_path, tran, hubert_soft, feature_input)
     plt.clf()
     plt.plot(plt_pitch(input_pitch), color="#66ccff")
-    plt.plot(plt_pitch(input_pitch), color="orange")
+    plt.plot(plt_pitch(output_pitch), color="orange")
     plt.savefig("temp.jpg")
 
 
