@@ -7,7 +7,7 @@ import infer_tool
 
 app = FastAPI()
 http_temp_path = "./wav_temp/http"
-infer_tool.mkdir([http_temp_path])
+infer_tool.mkdir(["./wav_temp", http_temp_path])
 net_g_ms, hubert_soft, feature_input, hps_ms = None, None, None, None
 
 
