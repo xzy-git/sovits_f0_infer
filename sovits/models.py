@@ -1,5 +1,4 @@
 import math
-import math
 
 import torch
 from torch import nn
@@ -7,10 +6,10 @@ from torch.nn import Conv1d, ConvTranspose1d, Conv2d
 from torch.nn import functional as F
 from torch.nn.utils import weight_norm, remove_weight_norm, spectral_norm
 
-import attentions
-import commons
-import modules
-from commons import init_weights, get_padding
+from sovits import attentions
+from sovits import commons
+from sovits import modules
+from sovits.commons import init_weights, get_padding
 
 
 class StochasticDurationPredictor(nn.Module):
