@@ -7,10 +7,10 @@ import numpy as np
 import torch
 import torchaudio
 
-import hubert_model
-import utils
-from models import SynthesizerTrn
-from preprocess_wave import FeatureInput
+from sovits import hubert_model
+from sovits import utils
+from sovits.models import SynthesizerTrn
+from sovits.preprocess_wave import FeatureInput
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -49,7 +49,7 @@ def load_model(model_path, config_path):
     _ = utils.load_checkpoint(model_path, n_g_ms, None)
     _ = n_g_ms.eval().to(dev)
     # 加载hubert
-    hubert_soft = hubert_model.hubert_soft(get_end_file("./", "pt")[0])
+    hubert_soft = hubert_model.hubert_soft(get_end_file("./pth", "pt")[0])
     feature_input = FeatureInput(hps_ms.data.sampling_rate, hps_ms.data.hop_length)
     return n_g_ms, hubert_soft, feature_input, hps_ms
 
