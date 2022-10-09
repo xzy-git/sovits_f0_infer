@@ -155,6 +155,8 @@ def del_temp_wav(path_data):
 
 def format_wav(audio_path, tar_sample):
     raw_audio, raw_sample_rate = torchaudio.load(audio_path)
+    if len(raw_audio.shape) == 2 and raw_audio.shape[1] >= 2:
+        raw_audio = torch.mean(raw_audio, dim=1)
     tar_audio = torchaudio.transforms.Resample(orig_freq=raw_sample_rate, new_freq=tar_sample)(raw_audio)[0]
     soundfile.write(audio_path[:-4] + ".wav", tar_audio, tar_sample)
     return tar_audio, tar_sample
