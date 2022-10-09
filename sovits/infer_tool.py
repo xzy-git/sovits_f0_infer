@@ -4,14 +4,13 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-import soundfile
 import torch
 import torchaudio
 
-from sovits import hubert_model
-from sovits import utils
-from sovits.models import SynthesizerTrn
-from sovits.preprocess_wave import FeatureInput
+import hubert_model
+import utils
+from models import SynthesizerTrn
+from preprocess_wave import FeatureInput
 
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -50,7 +49,7 @@ def load_model(model_path, config_path):
     _ = utils.load_checkpoint(model_path, n_g_ms, None)
     _ = n_g_ms.eval().to(dev)
     # 加载hubert
-    hubert_soft = hubert_model.hubert_soft(get_end_file("./pth", "pt")[0])
+    hubert_soft = hubert_model.hubert_soft(get_end_file("./", "pt")[0])
     feature_input = FeatureInput(hps_ms.data.sampling_rate, hps_ms.data.hop_length)
     return n_g_ms, hubert_soft, feature_input, hps_ms
 
@@ -64,8 +63,11 @@ def resize2d_f0(x, target_len):
     return res
 
 
-def get_units(audio, sr, hubert_soft):
-    source = torchaudio.functional.resample(audio, sr, 16000)
+def get_units(in_path, hubert_soft):
+    source, sr = torchaudio.load(in_path)
+    source = torchaudio.functional.resample(source, sr, 16000)
+    if len(source.shape) == 2 and source.shape[1] >= 2:
+        source = torch.mean(source, dim=0).unsqueeze(0)
     source = source.unsqueeze(0).to(dev)
     with torch.inference_mode():
         units = hubert_soft.units(source)
@@ -81,8 +83,7 @@ def transcribe(source_path, length, transform, feature_input):
 
 
 def get_unit_pitch(in_path, tran, hubert_soft, feature_input):
-    audio, sample_rate = torchaudio.load(in_path)
-    soft = get_units(audio, sample_rate, hubert_soft).squeeze(0).cpu().numpy()
+    soft = get_units(in_path, hubert_soft).squeeze(0).cpu().numpy()
     input_pitch = transcribe(in_path, soft.shape[0], tran, feature_input)
     return soft, input_pitch
 
@@ -111,7 +112,7 @@ def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
     plt.clf()
     plt.plot(plt_pitch(input_pitch), color="#66ccff")
     plt.plot(plt_pitch(output_pitch), color="orange")
-    plt.savefig("./wav_temp/temp.jpg")
+    plt.savefig("temp.jpg")
 
 
 def calc_error(in_path, out_path, tran, feature_input):
@@ -156,9 +157,9 @@ def del_temp_wav(path_data):
 def format_wav(audio_path, tar_sample):
     raw_audio, raw_sample_rate = torchaudio.load(audio_path)
     if len(raw_audio.shape) == 2 and raw_audio.shape[1] >= 2:
-        raw_audio = torch.mean(raw_audio, dim=1)
-    tar_audio = torchaudio.transforms.Resample(orig_freq=raw_sample_rate, new_freq=tar_sample)(raw_audio)[0]
-    soundfile.write(audio_path[:-4] + ".wav", tar_audio, tar_sample)
+        raw_audio = torch.mean(raw_audio, dim=0).unsqueeze(0)
+    tar_audio = torchaudio.functional.resample(raw_audio, raw_sample_rate, tar_sample)
+    torchaudio.save(audio_path[:-4] + ".wav", tar_audio, tar_sample)
     return tar_audio, tar_sample
 
 
