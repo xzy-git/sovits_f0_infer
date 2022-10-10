@@ -5,7 +5,7 @@ import numpy as np
 import pyworld
 from scipy.io import wavfile
 
-import utils
+from sovits import utils
 
 
 class FeatureInput(object):
