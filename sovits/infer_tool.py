@@ -1,5 +1,6 @@
 import logging
 import os
+import sys
 import time
 
 import matplotlib.pyplot as plt
@@ -7,11 +8,13 @@ import numpy as np
 import torch
 import torchaudio
 
+import harmof0
 from sovits import hubert_model
 from sovits import utils
 from sovits.models import SynthesizerTrn
 from sovits.preprocess_wave import FeatureInput
 
+sys.setrecursionlimit(1000000)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
 dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
@@ -74,8 +77,10 @@ def get_units(in_path, hubert_soft):
         return units
 
 
+@timeit
 def transcribe(source_path, length, transform, feature_input):
-    feature_pit = feature_input.compute_f0(source_path)
+    # feature_pit = feature_input.compute_f0(source_path)
+    feature_pit = harmof0.extract_file_f0(source_path)
     feature_pit = feature_pit * 2 ** (transform / 12)
     feature_pit = resize2d_f0(feature_pit, length)
     coarse_pit = feature_input.coarse_f0(feature_pit)
