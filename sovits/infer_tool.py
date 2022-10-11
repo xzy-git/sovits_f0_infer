@@ -77,7 +77,6 @@ def get_units(in_path, hubert_soft):
         return units
 
 
-@timeit
 def transcribe(source_path, length, transform, feature_input):
     # feature_pit = feature_input.compute_f0(source_path)
     feature_pit = harmof0.extract_file_f0(source_path)

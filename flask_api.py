@@ -22,26 +22,24 @@ def voiceChangeModel():
     """
     :return:
     """
-    try:
-        request_form = request.form
-        request_files = request.files
-        wave_file = request_files.get("sample", None)
-        f_pitch_change = int(float(request_form.get("fPitchChange", 0)))
-        save_file_name = os.path.join(http_temp_path, "{}.wav".format(get_timestamp()))
-        print("save_file_name:{}".format(save_file_name))
-        with open(save_file_name, 'wb') as fop:
-            fop.write(wave_file.stream.read())
 
-        out_audio, out_sr = infer_tool.infer(save_file_name, 4, int(f_pitch_change), net_g_ms, hubert_soft,
-                                             feature_input)
-        soundfile.write(f"{http_temp_path}/http_out.wav", out_audio, target_sample)
-        result_file = f"{http_temp_path}/http_out.wav"
-        return send_from_directory(http_temp_path, os.path.basename(result_file), as_attachment=True)
-    except Exception as e:
-        if request.content_length < 1024:
-            request_data_log = f"request body: {request.get_data(as_text=True)}"
-        else:
-            request_data_log = "request body 太大，不予输出"
+    request_form = request.form
+    request_files = request.files
+    print(request_form)
+    wave_file = request_files.get("sample", None)
+    print(wave_file)
+    f_pitch_change = int(float(request_form.get("fPitchChange", 0)))
+    save_file_name = os.path.join(http_temp_path, "{}.wav".format(get_timestamp()))
+    print("save_file_name:{}".format(save_file_name))
+    with open(save_file_name, 'wb') as fop:
+        print(len(wave_file.stream.read()))
+        fop.write(wave_file.stream.read())
+
+    out_audio, out_sr = infer_tool.infer(save_file_name, 4, int(f_pitch_change), net_g_ms, hubert_soft,
+                                         feature_input)
+    soundfile.write(f"{http_temp_path}/http_out.wav", out_audio, target_sample)
+    result_file = f"{http_temp_path}/http_out.wav"
+    return send_from_directory(http_temp_path, os.path.basename(result_file), as_attachment=True)
 
 
 if __name__ == '__main__':

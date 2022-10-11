@@ -26,7 +26,7 @@ async def infer(speaker: str, tran: str, audio: bytes = File(..., max_length=209
     with open(f"{http_temp_path}/http_in.wav", "wb") as f:
         f.write(audio)
     out_audio, out_sr = infer_tool.infer(f"{http_temp_path}/http_in.wav", int(speaker), int(tran), net_g_ms,
-                                         hubert_soft,feature_input)
+                                         hubert_soft, feature_input)
     soundfile.write(f"{http_temp_path}/http_out.wav", out_audio, target_sample)
     return f"{http_temp_path}/http_out.wav"
 
