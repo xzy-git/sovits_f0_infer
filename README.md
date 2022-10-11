@@ -16,9 +16,9 @@
 
 5、vst插件实时转换（慢半句左右）
 
-5.1 自行下载vst插件并搜索安装教程
+5.1 自行下载vst插件并搜索常用宿主软件的安装教程
 
-https://github.com/zhaohui8969/VST_NetProcess-/releases
+https://github.com/zhaohui8969/VST_NetProcess-/releases/tag/v1.1
 
 5.2 新建pth文件夹，放入此模型
 
