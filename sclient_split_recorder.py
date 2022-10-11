@@ -70,18 +70,17 @@ def save_audio(namer_num, audio_2, audio_format, frames):
 
 
 class Vad(object):
-    def __init__(self):
+    def _init_(self):
         # 初始短时能量高门限
-        self.amp1 = 940
+        self.amp1 = 500
         # 初始短时能量低门限
-        self.amp2 = 110
+        self.amp2 = 10
         # 初始短时过零率高门限
         self.zcr1 = 30
         # 初始短时过零率低门限
-        self.zcr2 = 2
+        self.zcr2 = 1
         # 允许最大静音长度
-        self.maxsilence = 50  # 允许换气的最长时间
-        # 语音的最短长度
+        self.maxsilence = 10  # 允许换气的最长时间
         self.minlen = 20  # 过滤小音量
         # 偏移值
         self.offsets = 40

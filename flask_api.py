@@ -26,20 +26,13 @@ def voiceChangeModel():
 
     request_form = request.form
     request_files = request.files
-    print(request_form)
     wave_file = request_files.get("sample", None)
-    print(wave_file)
     f_pitch_change = int(float(request_form.get("fPitchChange", 0)))
     save_file_name = f"{http_temp_path}/{get_timestamp()}.wav"
-    print("save_file_name:{}".format(save_file_name))
-    """
+    w_file = wave_file.stream.read()
     with open(save_file_name, 'wb') as fop:
-        print(len(wave_file.stream.read()))
-        print(type(wave_file.stream.read()))
-        fop.write(wave_file.stream.read())
-        """
-    source_name = "c://temp/vst/vst_model_input_wave.wav"
-    out_audio, out_sr = infer_tool.infer(source_name, 4, int(f_pitch_change), net_g_ms, hubert_soft,
+        fop.write(w_file)
+    out_audio, out_sr = infer_tool.infer(save_file_name, speaker_id, int(f_pitch_change), net_g_ms, hubert_soft,
                                          feature_input)
     soundfile.write(f"{http_temp_path}/http_out.wav", out_audio, target_sample)
     result_file = f"{http_temp_path}/http_out.wav"
@@ -47,6 +40,7 @@ def voiceChangeModel():
 
 
 if __name__ == '__main__':
+    speaker_id = 0
     model_name = "152_epochs.pth"
     config_name = "nyarumul.json"
     http_temp_path = "./wav_temp/http"
