@@ -15,9 +15,9 @@ logging.getLogger('numba').setLevel(logging.WARNING)
 # https://github.com/bshall/hubert/releases/tag/v0.1
 # pth文件夹，放置hubert、sovits模型
 # 可填写音源文件列表、名称不含空格，音源文件格式为wav，放置于raw文件夹下
-clean_names = ["项脊轩志"]
+clean_names = ["十年"]
 # 合成多少歌曲时，若半音数量不足、自动补齐相同数量（按第一首歌的半音）
-trans = [12]  # 加减半音数（可为正负）
+trans = [0]  # 加减半音数（可为正负）
 # 每首歌同时输出的speaker_id
 id_list = [0]
 
@@ -40,14 +40,14 @@ for clean_name, tran in zip(clean_names, trans):
     infer_tool.format_wav(raw_audio_path, target_sample)
     for spk_id in id_list:
         # 清除缓存文件
-        #infer_tool.del_temp_wav("./wav_temp")
+        infer_tool.del_temp_wav("./wav_temp")
         var_list = []
         mis_list = []
         out_audio_name = model_name.split(".")[0] + f"_{clean_name}_{speakers[spk_id]}"
 
-        """proc = subprocess.Popen(
+        proc = subprocess.Popen(
             f"python ./sovits/slicer.py {raw_audio_path} --out_name {out_audio_name} --out {input_wav_path}  --db_thresh -30",
-            shell=True).wait()"""
+            shell=True).wait()
         # shutil.copy(raw_audio_path, f"{input_wav_path}/{out_audio_name}-00.wav")
         count = 0
         file_list = os.listdir(input_wav_path)
