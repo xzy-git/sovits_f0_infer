@@ -25,8 +25,8 @@ record_pth = "./wav_temp/record"
 infer_tool.mkdir(["./wav_temp", record_pth])
 
 # 说话人序号、升降半音、模型、配置json
-spk_id = 0
-tran = 12
+spk_id = 4
+tran = 6
 model_name = "152_epochs.pth"  # 模型名称（pth文件夹下）
 config_name = "nyarumul.json"  # 模型配置（config文件夹下）
 

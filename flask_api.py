@@ -1,6 +1,7 @@
 import os
 from datetime import datetime
 
+import soundfile
 from flask import Flask, request
 from flask import send_from_directory
 from flask_cors import CORS
@@ -29,13 +30,16 @@ def voiceChangeModel():
     wave_file = request_files.get("sample", None)
     print(wave_file)
     f_pitch_change = int(float(request_form.get("fPitchChange", 0)))
-    save_file_name = os.path.join(http_temp_path, "{}.wav".format(get_timestamp()))
+    save_file_name = f"{http_temp_path}/{get_timestamp()}.wav"
     print("save_file_name:{}".format(save_file_name))
+    """
     with open(save_file_name, 'wb') as fop:
         print(len(wave_file.stream.read()))
+        print(type(wave_file.stream.read()))
         fop.write(wave_file.stream.read())
-
-    out_audio, out_sr = infer_tool.infer(save_file_name, 4, int(f_pitch_change), net_g_ms, hubert_soft,
+        """
+    source_name = "c://temp/vst/vst_model_input_wave.wav"
+    out_audio, out_sr = infer_tool.infer(source_name, 4, int(f_pitch_change), net_g_ms, hubert_soft,
                                          feature_input)
     soundfile.write(f"{http_temp_path}/http_out.wav", out_audio, target_sample)
     result_file = f"{http_temp_path}/http_out.wav"
