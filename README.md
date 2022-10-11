@@ -12,13 +12,15 @@
 
 3、http_server可以转换http方式传输的音频，使用方法参考http_cli
 
-4、vst插件实时转换（慢半句左右）
+4、main_realTime.py为ide录音体验，vst效果更好一些
 
-4.1 自行下载vst插件并搜索安装教程
+5、vst插件实时转换（慢半句左右）
+
+5.1 自行下载vst插件并搜索安装教程
 
 https://github.com/zhaohui8969/VST_NetProcess-/releases
 
-4.2 新建pth文件夹，放入此模型
+5.2 新建pth文件夹，放入此模型
 
 https://huggingface.co/spaces/xiaolang/sovits_f0/resolve/main/152_epochs.pth
 
@@ -26,10 +28,10 @@ https://huggingface.co/spaces/xiaolang/sovits_f0/resolve/main/152_epochs.pth
 
 https://github.com/bshall/hubert/releases/tag/v0.1
 
-4.3 c盘根目录新建/temp/vst文件夹
+5.3 c盘根目录新建/temp/vst文件夹
 
-4.4 安装requirements.txt
+5.4 安装requirements.txt
 
-4.5 首先运行！！！flask_api.py，待出现运行网址127.0.0.1:6842后，再打开宿主软件
+5.5 首先运行！！！flask_api.py，待出现运行网址127.0.0.1:6842后，再打开宿主软件
 
-4.6 给某声道挂载vst插件，打开录音准备、监听，录音输入增益可以调高一些，即可使用
+5.6 给某音轨挂载vst插件，打开录音准备、监听，录音输入增益可以调高一些，即可使用

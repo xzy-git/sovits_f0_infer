@@ -78,7 +78,6 @@ def get_units(in_path, hubert_soft):
 
 def transcribe(source_path, length, transform, feature_input):
     feature_pit = feature_input.compute_f0(source_path)
-    # feature_pit = harmof0.extract_file_f0(source_path)
     feature_pit = feature_pit * 2 ** (transform / 12)
     feature_pit = resize2d_f0(feature_pit, length)
     coarse_pit = feature_input.coarse_f0(feature_pit)
