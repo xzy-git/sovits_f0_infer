@@ -12,3 +12,5 @@ sounddevice==0.4.5
 soundfile==0.11.0
 torch==1.12.1
 torchaudio==0.12.1
+flask
+flask_cors
