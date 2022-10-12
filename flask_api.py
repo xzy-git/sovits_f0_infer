@@ -1,6 +1,4 @@
-import io
 import logging
-import os
 from datetime import datetime
 
 import soundfile
@@ -28,18 +26,20 @@ def voice_change_model():
     wave_file = request.files.get("sample", None)
     # 变调信息
     f_pitch_change = int(float(request_form.get("fPitchChange", 0)))
-    raw_wav_path = f"{http_temp_path}/{get_timestamp()}.wav"
+    raw_sample = int(float(request_form.get("sampleRate", 0)))
+    raw_wav_path = f"{http_temp_path}/http_in.wav"
+    print(raw_sample, f_pitch_change)
     # http获得wav文件并转换
-    w_file = wave_file.stream.read()
+    w_file = wave_file.read()
     with open(raw_wav_path, 'wb') as fop:
         fop.write(w_file)
+    infer_tool.format_wav(raw_wav_path, target_sample)
     out_audio, out_sr = infer_tool.infer(raw_wav_path, speaker_id, f_pitch_change, net_g_ms, hubert_soft,
                                          feature_input)
-    os.remove(raw_wav_path)
-    out_wav_path = io.BytesIO()
-    soundfile.write(out_wav_path, out_audio, target_sample, format="wav")
-    out_wav_path.seek(0)
-    return send_file(out_wav_path, download_name="temp.wav", as_attachment=True)
+    out_wav_path = f"{http_temp_path}/http_out.wav"
+    soundfile.write(out_wav_path, out_audio, target_sample)
+    infer_tool.format_wav(out_wav_path, raw_sample)
+    return send_file(out_wav_path, as_attachment=True)
 
 
 if __name__ == '__main__':
