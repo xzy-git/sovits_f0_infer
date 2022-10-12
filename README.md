@@ -30,7 +30,7 @@ https://github.com/zhaohui8969/VST_NetProcess-/releases/tag/v1.2
 
 这样au、studio设置相应路径就能识别了，D盘不知道为什么不识别
 
-5.2 c盘根目录新建/temp/vst文件夹，下载以下json放置在此文件夹
+5.2 c盘根目录新建/temp/vst文件夹，下载以下json放置在此文件夹（本项目configs里也有，直接复制省事）
 
 https://github.com/zhaohui8969/VST_NetProcess-/blob/master/doc/netProcessConfig.json
 
@@ -40,11 +40,13 @@ https://github.com/zhaohui8969/VST_NetProcess-/blob/master/doc/netProcessConfig.
 
 5.3 项目根目录，新建pth文件夹，放入以下模型，模型配套本git的configs/nyarumul.json，flask_api默认参数就是这俩
 
-https://huggingface.co/spaces/xiaolang/sovits_f0/resolve/main/152_epochs.pth
+此模型中序号—— 0：猫雷、2：云灏、3：即霜、4：奕兰秋
+
+模型下载地址：https://huggingface.co/spaces/xiaolang/sovits_f0/resolve/main/152_epochs.pth
 
 自行下载hubert-soft-0d54a1f4.pt改名为hubert.pt放置于pth文件夹下，一定要改名
 
-https://github.com/bshall/hubert/releases/tag/v0.1
+hubert地址：https://github.com/bshall/hubert/releases/tag/v0.1
 
 5.4 安装requirements.txt
 
