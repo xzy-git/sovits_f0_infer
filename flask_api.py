@@ -1,9 +1,11 @@
+import io
+import logging
 import os
 from datetime import datetime
 
 import soundfile
 from flask import Flask, request
-from flask import send_from_directory
+from flask import send_file
 from flask_cors import CORS
 
 from sovits import infer_tool
@@ -12,6 +14,8 @@ app = Flask(__name__)
 
 CORS(app)
 
+logging.getLogger('numba').setLevel(logging.WARNING)
+
 
 def get_timestamp():
     timestamp = datetime.now()
@@ -19,34 +23,34 @@ def get_timestamp():
 
 
 @app.route("/voiceChangeModel", methods=["POST"])
-def voiceChangeModel():
+def voice_change_model():
     request_form = request.form
-    request_files = request.files
-    wave_file = request_files.get("sample", None)
+    wave_file = request.files.get("sample", None)
     # 变调信息
     f_pitch_change = int(float(request_form.get("fPitchChange", 0)))
-    save_file_name = f"{http_temp_path}/{get_timestamp()}.wav"
+    raw_wav_path = f"{http_temp_path}/{get_timestamp()}.wav"
     # http获得wav文件并转换
     w_file = wave_file.stream.read()
-    with open(save_file_name, 'wb') as fop:
+    with open(raw_wav_path, 'wb') as fop:
         fop.write(w_file)
-    out_audio, out_sr = infer_tool.infer(save_file_name, speaker_id, int(f_pitch_change), net_g_ms, hubert_soft,
+    out_audio, out_sr = infer_tool.infer(raw_wav_path, speaker_id, f_pitch_change, net_g_ms, hubert_soft,
                                          feature_input)
-    soundfile.write(f"{http_temp_path}/http_out.wav", out_audio, target_sample)
-    result_file = f"{http_temp_path}/http_out.wav"
-    return send_from_directory(http_temp_path, os.path.basename(result_file), as_attachment=True)
+    os.remove(raw_wav_path)
+    out_wav_path = io.BytesIO()
+    soundfile.write(out_wav_path, out_audio, target_sample, format="wav")
+    out_wav_path.seek(0)
+    return send_file(out_wav_path, download_name="temp.wav", as_attachment=True)
 
 
 if __name__ == '__main__':
     # 这个是人物音色id，发布模型的时候、发布人应注明
-    speaker_id = 0
+    speaker_id = 4
     # 每个模型和config是唯一对应的
     model_name = "152_epochs.pth"
     config_name = "nyarumul.json"
     # 建立缓存文件夹，并清理上次运行产生的音频文件
-    http_temp_path = "./wav_temp/http"
-    infer_tool.mkdir(["./wav_temp", http_temp_path])
-    infer_tool.del_temp_wav(http_temp_path)
+    http_temp_path = "./wav_temp"
+    infer_tool.mkdir([http_temp_path])
     # 加载模型
     net_g_ms, hubert_soft, feature_input, hps_ms = infer_tool.load_model(f"pth/{model_name}", f"configs/{config_name}")
     target_sample = hps_ms.data.sampling_rate
