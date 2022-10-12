@@ -4,7 +4,7 @@
 
 歌声音色转换模型，通过Soft-VC内容编码器提取源音频语音特征，并提取音频f0，将两者结合输入VITS替换原本的文本输入达到歌声转换的效果。
 
-## 使用方式（**实时sovits暂时维护1-2天，适配多采样率的麦克风，音色热调节等，可以按照main.py预先配置环境**）
+## 使用方式（**实时sovits已更新完毕，适配多采样率的麦克风，音色热调节等**）
 
 1、main.py为一键合成长时间音频（数分钟以上），使用方法参考注释
 
@@ -24,15 +24,21 @@ https://pytorch.org/get-started/locally/
 
 5.1 自行下载vst插件并搜索常用宿主软件的安装教程
 
-https://github.com/zhaohui8969/VST_NetProcess-/releases/tag/v1.1
+https://github.com/zhaohui8969/VST_NetProcess-/releases/tag/v1.2
 
 目前经验，一定装在  C:\Program Files\Common Files\VST3\NetProcess.vst3（这是解压出的文件夹名字）
 
 这样au、studio设置相应路径就能识别了，D盘不知道为什么不识别
 
-5.2 c盘根目录新建/temp/vst文件夹
+5.2 c盘根目录新建/temp/vst文件夹，下载以下json放置在此文件夹
 
-5.3 项目根目录，新建pth文件夹，放入此模型，此模型配套本git的configs/nyarumul.json，flask_api默认参数就是这俩
+https://github.com/zhaohui8969/VST_NetProcess-/blob/master/doc/netProcessConfig.json
+
+"apiUrl": "http://127.0.0.1:6842"为默认api接口，与本程序flask_api.py默认端口对应
+
+"speakId": "0","name": "猫雷"   分别为人物在模型中的id、人物名，**人物名使用英文**、否则乱码，插件中可以切换
+
+5.3 项目根目录，新建pth文件夹，放入以下模型，模型配套本git的configs/nyarumul.json，flask_api默认参数就是这俩
 
 https://huggingface.co/spaces/xiaolang/sovits_f0/resolve/main/152_epochs.pth
 
