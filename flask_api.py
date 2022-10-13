@@ -1,11 +1,9 @@
 import io
 import logging
-from datetime import datetime
 
 import librosa
 import soundfile
-from flask import Flask, request
-from flask import send_file
+from flask import Flask, request, send_file
 from flask_cors import CORS
 
 from sovits import infer_tool
@@ -15,11 +13,6 @@ app = Flask(__name__)
 CORS(app)
 
 logging.getLogger('numba').setLevel(logging.WARNING)
-
-
-def get_timestamp():
-    timestamp = datetime.now()
-    return timestamp.strftime("%Y%m%d_%H%M%S")
 
 
 @app.route("/voiceChangeModel", methods=["POST"])
