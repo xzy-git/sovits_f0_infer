@@ -1,6 +1,5 @@
 import os
 
-import librosa
 import numpy as np
 import pyworld
 from scipy.io import wavfile
@@ -19,9 +18,10 @@ class FeatureInput(object):
         self.f0_mel_min = 1127 * np.log(1 + self.f0_min / 700)
         self.f0_mel_max = 1127 * np.log(1 + self.f0_max / 700)
 
-    def compute_f0(self, path):
-        x, sr = librosa.load(path, sr=self.fs)
-        assert sr == self.fs
+    def compute_f0(self, audio, sr):
+        # x, sr = librosa.load(path, sr=self.fs)
+        x, sr = audio, sr
+        # assert sr == self.fs
         f0, t = pyworld.dio(
             x.astype(np.double),
             fs=sr,

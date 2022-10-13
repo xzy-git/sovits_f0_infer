@@ -5,7 +5,6 @@ import time
 
 import matplotlib.pyplot as plt
 import numpy as np
-import soundfile
 import torch
 import torchaudio
 
@@ -66,28 +65,28 @@ def resize2d_f0(x, target_len):
     return res
 
 
-def get_units(in_path, hubert_soft):
-    source, sr = torchaudio.load(in_path)
-    source = torchaudio.functional.resample(source, sr, 16000)
-    if len(source.shape) == 2 and source.shape[1] >= 2:
-        source = torch.mean(source, dim=0).unsqueeze(0)
-    source = source.unsqueeze(0).to(dev)
+def get_units(audio, hubert_soft):
+    audio = audio.unsqueeze(0).to(dev)
     with torch.inference_mode():
-        units = hubert_soft.units(source)
+        units = hubert_soft.units(audio)
         return units
 
 
-def transcribe(source_path, length, transform, feature_input):
-    feature_pit = feature_input.compute_f0(source_path)
+def transcribe(audio, sr, length, transform, feature_input):
+    feature_pit = feature_input.compute_f0(audio, sr)
     feature_pit = feature_pit * 2 ** (transform / 12)
     feature_pit = resize2d_f0(feature_pit, length)
     coarse_pit = feature_input.coarse_f0(feature_pit)
     return coarse_pit
 
 
-def get_unit_pitch(in_path, tran, hubert_soft, feature_input):
-    soft = get_units(in_path, hubert_soft).squeeze(0).cpu().numpy()
-    input_pitch = transcribe(in_path, soft.shape[0], tran, feature_input)
+def get_unit_pitch(source, tran, hubert_soft, feature_input):
+    audio, sr = torchaudio.load(source)
+    audio = torchaudio.functional.resample(audio, sr, 16000)
+    if len(audio.shape) == 2 and audio.shape[1] >= 2:
+        audio = torch.mean(audio, dim=0).unsqueeze(0)
+    soft = get_units(audio, hubert_soft).squeeze(0).cpu().numpy()
+    input_pitch = transcribe(audio.cpu().numpy()[0], 16000, soft.shape[0], tran, feature_input)
     return soft, input_pitch
 
 
@@ -119,8 +118,10 @@ def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
 
 
 def calc_error(in_path, out_path, tran, feature_input):
-    input_pitch = feature_input.compute_f0(in_path)
-    output_pitch = feature_input.compute_f0(out_path)
+    audio, sr = torchaudio.load(in_path)
+    input_pitch = feature_input.compute_f0(audio.cpu().numpy()[0], sr)
+    audio, sr = torchaudio.load(out_path)
+    output_pitch = feature_input.compute_f0(audio.cpu().numpy()[0], sr)
     sum_y = []
     if np.sum(input_pitch == 0) / len(input_pitch) > 0.9:
         mistake, var_take = 0, 0
@@ -137,9 +138,9 @@ def calc_error(in_path, out_path, tran, feature_input):
     return mistake, var_take
 
 
-def infer(source_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
+def infer(in_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
     sid = torch.LongTensor([int(speaker_id)]).to(dev)
-    soft, pitch = get_unit_pitch(source_path, tran, hubert_soft, feature_input)
+    soft, pitch = get_unit_pitch(in_path, tran, hubert_soft, feature_input)
     pitch = torch.LongTensor(clean_pitch(pitch)).unsqueeze(0).to(dev)
     stn_tst = torch.FloatTensor(soft)
     with torch.no_grad():
