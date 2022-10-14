@@ -80,8 +80,8 @@ def transcribe(audio, sr, length, transform, feature_input):
     return coarse_pit
 
 
-def get_unit_pitch(source, tran, hubert_soft, feature_input):
-    audio, sr = torchaudio.load(source)
+def get_unit_pitch(audio, sr, tran, hubert_soft, feature_input):
+    # audio, sr = torchaudio.load(source)
     audio = torchaudio.functional.resample(audio, sr, 16000)
     if len(audio.shape) == 2 and audio.shape[1] >= 2:
         audio = torch.mean(audio, dim=0).unsqueeze(0)
@@ -138,9 +138,9 @@ def calc_error(in_path, out_path, tran, feature_input):
     return mistake, var_take
 
 
-def infer(in_path, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
+def infer(model_input_audio, model_input_audio_sample_rate, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
     sid = torch.LongTensor([int(speaker_id)]).to(dev)
-    soft, pitch = get_unit_pitch(in_path, tran, hubert_soft, feature_input)
+    soft, pitch = get_unit_pitch(model_input_audio, model_input_audio_sample_rate, tran, hubert_soft, feature_input)
     pitch = torch.LongTensor(clean_pitch(pitch)).unsqueeze(0).to(dev)
     stn_tst = torch.FloatTensor(soft)
     with torch.no_grad():
