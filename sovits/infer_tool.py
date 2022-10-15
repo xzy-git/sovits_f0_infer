@@ -1,9 +1,6 @@
 import logging
 import os
-import sys
-import time
 
-import matplotlib.pyplot as plt
 import numpy as np
 import torch
 import torchaudio
@@ -13,9 +10,7 @@ from sovits import utils
 from sovits.models import SynthesizerTrn
 from sovits.preprocess_wave import FeatureInput
 
-sys.setrecursionlimit(1000000)
 logging.getLogger('matplotlib').setLevel(logging.WARNING)
-dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
 
 def timeit(func):
@@ -39,23 +34,6 @@ def get_end_file(dir_path, end):
     return file_lists
 
 
-def load_model(model_path, config_path):
-    # 获取模型配置
-    hps_ms = utils.get_hparams_from_file(config_path)
-    n_g_ms = SynthesizerTrn(
-        178,
-        hps_ms.data.filter_length // 2 + 1,
-        hps_ms.train.segment_size // hps_ms.data.hop_length,
-        n_speakers=hps_ms.data.n_speakers,
-        **hps_ms.model)
-    _ = utils.load_checkpoint(model_path, n_g_ms, None)
-    _ = n_g_ms.eval().to(dev)
-    # 加载hubert
-    hubert_soft = hubert_model.hubert_soft(get_end_file("./pth", "pt")[0])
-    feature_input = FeatureInput(hps_ms.data.sampling_rate, hps_ms.data.hop_length)
-    return n_g_ms, hubert_soft, feature_input, hps_ms
-
-
 def resize2d_f0(x, target_len):
     source = np.array(x)
     source[source < 0.001] = np.nan
@@ -63,31 +41,6 @@ def resize2d_f0(x, target_len):
                        source)
     res = np.nan_to_num(target)
     return res
-
-
-def get_units(audio, hubert_soft):
-    audio = audio.unsqueeze(0).to(dev)
-    with torch.inference_mode():
-        units = hubert_soft.units(audio)
-        return units
-
-
-def transcribe(audio, sr, length, transform, feature_input):
-    feature_pit = feature_input.compute_f0(audio, sr)
-    feature_pit = feature_pit * 2 ** (transform / 12)
-    feature_pit = resize2d_f0(feature_pit, length)
-    coarse_pit = feature_input.coarse_f0(feature_pit)
-    return coarse_pit
-
-
-def get_unit_pitch(audio, sr, tran, hubert_soft, feature_input):
-    # audio, sr = torchaudio.load(source)
-    audio = torchaudio.functional.resample(audio, sr, 16000)
-    if len(audio.shape) == 2 and audio.shape[1] >= 2:
-        audio = torch.mean(audio, dim=0).unsqueeze(0)
-    soft = get_units(audio, hubert_soft).squeeze(0).cpu().numpy()
-    input_pitch = transcribe(audio.cpu().numpy()[0], 16000, soft.shape[0], tran, feature_input)
-    return soft, input_pitch
 
 
 def clean_pitch(input_pitch):
@@ -108,60 +61,9 @@ def f0_to_pitch(ff):
     return f0_pitch
 
 
-def f0_plt(in_path, out_path, tran, hubert_soft, feature_input):
-    s1, input_pitch = get_unit_pitch(in_path, tran, hubert_soft, feature_input)
-    s2, output_pitch = get_unit_pitch(out_path, 0, hubert_soft, feature_input)
-    plt.clf()
-    plt.plot(plt_pitch(input_pitch), color="#66ccff")
-    plt.plot(plt_pitch(output_pitch), color="orange")
-    plt.savefig("./wav_temp/temp.jpg")
-
-
-def calc_error(in_path, out_path, tran, feature_input):
-    audio, sr = torchaudio.load(in_path)
-    input_pitch = feature_input.compute_f0(audio.cpu().numpy()[0], sr)
-    audio, sr = torchaudio.load(out_path)
-    output_pitch = feature_input.compute_f0(audio.cpu().numpy()[0], sr)
-    sum_y = []
-    if np.sum(input_pitch == 0) / len(input_pitch) > 0.9:
-        mistake, var_take = 0, 0
-    else:
-        for i in range(min(len(input_pitch), len(output_pitch))):
-            if input_pitch[i] > 0 and output_pitch[i] > 0:
-                sum_y.append(abs(f0_to_pitch(output_pitch[i]) - (f0_to_pitch(input_pitch[i]) + tran)))
-        num_y = 0
-        for x in sum_y:
-            num_y += x
-        len_y = len(sum_y) if len(sum_y) else 1
-        mistake = round(float(num_y / len_y), 2)
-        var_take = round(float(np.std(sum_y, ddof=1)), 2)
-    return mistake, var_take
-
-
-def infer(model_input_audio, model_input_audio_sample_rate, speaker_id, tran, net_g_ms, hubert_soft, feature_input):
-    sid = torch.LongTensor([int(speaker_id)]).to(dev)
-    soft, pitch = get_unit_pitch(model_input_audio, model_input_audio_sample_rate, tran, hubert_soft, feature_input)
-    pitch = torch.LongTensor(clean_pitch(pitch)).unsqueeze(0).to(dev)
-    stn_tst = torch.FloatTensor(soft)
-    with torch.no_grad():
-        x_tst = stn_tst.unsqueeze(0).to(dev)
-        x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).to(dev)
-        audio = net_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid)[0][0, 0].data.float().cpu().numpy()
-    return audio, audio.shape[-1]
-
-
 def del_temp_wav(path_data):
     for i in get_end_file(path_data, "wav"):  # os.listdir(path_data)#返回一个列表，里面是当前目录下面的所有东西的相对路径
         os.remove(i)
-
-
-def format_wav(audio_path, tar_sample):
-    raw_audio, raw_sample_rate = torchaudio.load(audio_path)
-    if len(raw_audio.shape) == 2 and raw_audio.shape[1] >= 2:
-        raw_audio = torch.mean(raw_audio, dim=0).unsqueeze(0)
-    tar_audio = torchaudio.functional.resample(raw_audio, raw_sample_rate, tar_sample)
-    torchaudio.save(audio_path[:-4] + ".wav", tar_audio, tar_sample)
-    return tar_audio, tar_sample
 
 
 def fill_a_to_b(a, b):
@@ -174,3 +76,89 @@ def mkdir(paths: list):
     for path in paths:
         if not os.path.exists(path):
             os.mkdir(path)
+
+
+class Svc(object):
+    def __init__(self, model_path, config_path):
+        self.dev = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+        self.n_g_ms = None
+        self.hps_ms = utils.get_hparams_from_file(config_path)
+        self.target_sample = self.hps_ms.data.sampling_rate
+        # 加载hubert
+        self.hubert_soft = hubert_model.hubert_soft(get_end_file("./pth", "pt")[0])
+        self.feature_input = FeatureInput(self.hps_ms.data.sampling_rate, self.hps_ms.data.hop_length)
+
+        self.load_model(model_path)
+
+    def load_model(self, model_path):
+        # 获取模型配置
+        self.n_g_ms = SynthesizerTrn(
+            178,
+            self.hps_ms.data.filter_length // 2 + 1,
+            self.hps_ms.train.segment_size // self.hps_ms.data.hop_length,
+            n_speakers=self.hps_ms.data.n_speakers,
+            **self.hps_ms.model)
+        _ = utils.load_checkpoint(model_path, self.n_g_ms, None)
+        _ = self.n_g_ms.eval().to(self.dev)
+
+    def get_units(self, audio):
+        audio = audio.unsqueeze(0).to(self.dev)
+        with torch.inference_mode():
+            units = self.hubert_soft.units(audio)
+            return units
+
+    def transcribe(self, audio, sr, length, transform):
+        feature_pit = self.feature_input.compute_f0(audio, sr)
+        feature_pit = feature_pit * 2 ** (transform / 12)
+        feature_pit = resize2d_f0(feature_pit, length)
+        coarse_pit = self.feature_input.coarse_f0(feature_pit)
+        return coarse_pit
+
+    def get_unit_pitch(self, audio, sr, tran):
+        audio = torchaudio.functional.resample(audio, sr, 16000)
+        if len(audio.shape) == 2 and audio.shape[1] >= 2:
+            audio = torch.mean(audio, dim=0).unsqueeze(0)
+        soft = self.get_units(audio).squeeze(0).cpu().numpy()
+        input_pitch = self.transcribe(audio.cpu().numpy()[0], 16000, soft.shape[0], tran)
+        return soft, input_pitch
+
+    def calc_error(self, in_path, out_path, tran):
+        audio, sr = torchaudio.load(in_path)
+        input_pitch = self.feature_input.compute_f0(audio.cpu().numpy()[0], sr)
+        audio, sr = torchaudio.load(out_path)
+        output_pitch = self.feature_input.compute_f0(audio.cpu().numpy()[0], sr)
+        sum_y = []
+        if np.sum(input_pitch == 0) / len(input_pitch) > 0.9:
+            mistake, var_take = 0, 0
+        else:
+            for i in range(min(len(input_pitch), len(output_pitch))):
+                if input_pitch[i] > 0 and output_pitch[i] > 0:
+                    sum_y.append(abs(f0_to_pitch(output_pitch[i]) - (f0_to_pitch(input_pitch[i]) + tran)))
+            num_y = 0
+            for x in sum_y:
+                num_y += x
+            len_y = len(sum_y) if len(sum_y) else 1
+            mistake = round(float(num_y / len_y), 2)
+            var_take = round(float(np.std(sum_y, ddof=1)), 2)
+        return mistake, var_take
+
+    def infer(self, speaker_id, tran, model_input_audio, model_input_sr=None):
+        sid = torch.LongTensor([int(speaker_id)]).to(self.dev)
+        if model_input_sr is None:
+            model_input_sr = self.target_sample
+        soft, pitch = self.get_unit_pitch(model_input_audio, model_input_sr, tran)
+        pitch = torch.LongTensor(clean_pitch(pitch)).unsqueeze(0).to(self.dev)
+        stn_tst = torch.FloatTensor(soft)
+        with torch.no_grad():
+            x_tst = stn_tst.unsqueeze(0).to(self.dev)
+            x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).to(self.dev)
+            audio = self.n_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid)[0][0, 0].data.float().cpu().numpy()
+        return audio, audio.shape[-1]
+
+    def format_wav(self, audio_path):
+        raw_audio, raw_sample_rate = torchaudio.load(audio_path)
+        if len(raw_audio.shape) == 2 and raw_audio.shape[1] >= 2:
+            raw_audio = torch.mean(raw_audio, dim=0).unsqueeze(0)
+        tar_audio = torchaudio.functional.resample(raw_audio, raw_sample_rate, self.target_sample)
+        torchaudio.save(audio_path[:-4] + ".wav", tar_audio, self.target_sample)
+        return tar_audio, self.target_sample

@@ -130,42 +130,6 @@ class DurationPredictor(nn.Module):
         return x * x_mask
 
 
-class PitchPredictor(nn.Module):
-    def __init__(self,
-                 n_vocab,
-                 out_channels,
-                 hidden_channels,
-                 filter_channels,
-                 n_heads,
-                 n_layers,
-                 kernel_size,
-                 p_dropout):
-        super().__init__()
-        self.n_vocab = n_vocab  # 音素的个数，中文和英文不同
-        self.out_channels = out_channels
-        self.hidden_channels = hidden_channels
-        self.filter_channels = filter_channels
-        self.n_heads = n_heads
-        self.n_layers = n_layers
-        self.kernel_size = kernel_size
-        self.p_dropout = p_dropout
-
-        self.pitch_net = attentions.Encoder(
-            hidden_channels,
-            filter_channels,
-            n_heads,
-            n_layers,
-            kernel_size,
-            p_dropout)
-        self.proj = nn.Conv1d(hidden_channels, 1, 1)
-
-    def forward(self, x, x_mask):
-        pitch_embedding = self.pitch_net(x * x_mask, x_mask)
-        pitch_embedding = pitch_embedding * x_mask
-        pred_pitch = self.proj(pitch_embedding)
-        return pred_pitch, pitch_embedding
-
-
 class TextEncoder(nn.Module):
     def __init__(self,
                  n_vocab,
