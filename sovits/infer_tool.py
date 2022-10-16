@@ -1,5 +1,7 @@
 import logging
 import os
+import shutil
+import subprocess
 
 import numpy as np
 import torch
@@ -21,6 +23,16 @@ def timeit(func):
         return res
 
     return run
+
+
+def cut_wav(raw_audio_path, out_audio_name, input_wav_path, cut_time):
+    raw_audio, raw_sr = torchaudio.load(raw_audio_path)
+    if raw_audio.shape[-1] / raw_sr > cut_time:
+        subprocess.Popen(
+            f"python ./sovits/slicer.py {raw_audio_path} --out_name {out_audio_name} --out {input_wav_path}  --db_thresh -30",
+            shell=True).wait()
+    else:
+        shutil.copy(raw_audio_path, f"{input_wav_path}/{out_audio_name}-00.wav")
 
 
 def get_end_file(dir_path, end):
@@ -84,6 +96,7 @@ class Svc(object):
         self.n_g_ms = None
         self.hps_ms = utils.get_hparams_from_file(config_path)
         self.target_sample = self.hps_ms.data.sampling_rate
+        self.speakers = self.hps_ms.speakers
         # 加载hubert
         self.hubert_soft = hubert_model.hubert_soft(get_end_file("./pth", "pt")[0])
         self.feature_input = FeatureInput(self.hps_ms.data.sampling_rate, self.hps_ms.data.hop_length)
