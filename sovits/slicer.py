@@ -60,11 +60,11 @@ class Slicer:
 
     @timeit
     def slice(self, audio):
-        if len(audio.shape) > 1:
-            samples = librosa.to_mono(audio)
+        if len(audio.shape) == 2 and audio.shape[1] >= 2:
+            samples = torch.mean(audio, dim=0)
         else:
             samples = audio
-        if samples.shape[0] <= self.min_samples:
+        if samples.shape[-1] <= self.min_samples:
             return [audio]
         # get absolute amplitudes
         abs_amp = np.abs(samples - np.mean(samples))
@@ -107,7 +107,7 @@ class Slicer:
             rms_db_left = level2db(_window_rms(samples[left: left + sil_left_n], win_sz=self.win_sn))
             split_win_l = left + np.argmin(rms_db_left)
             split_loc_l = split_win_l + np.argmin(abs_amp[split_win_l: split_win_l + self.win_sn])
-            sil_tags.append((split_loc_l, samples.shape[0]))
+            sil_tags.append((split_loc_l, samples.shape[-1]))
         if len(sil_tags) == 0:
             return [len(audio)]
         else:
