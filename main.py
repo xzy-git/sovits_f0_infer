@@ -46,7 +46,7 @@ for clean_name, tran in zip(clean_names, trans):
 
             raw_audio, raw_sr = torchaudio.load(raw_path)
             out_audio, out_sr = svc_model.infer(spk_id, tran, raw_audio, raw_sr)
-            soundfile.write(out_path, out_audio, svc_model.target_sample)
+            soundfile.write(out_path, out_audio.cpu().numpy(), svc_model.target_sample)
 
             mistake, var = svc_model.calc_error(raw_path, out_path, tran)
             mis_list.append(mistake)

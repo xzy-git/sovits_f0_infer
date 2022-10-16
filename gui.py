@@ -38,6 +38,7 @@ def infer(sid, audio_record, audio_upload, tran):
         return "你需要上传wav文件或使用网页内置的录音！", None
     raw_audio, raw_sr = torchaudio.load(audio_path)
     o_audio, out_sr = svc_model.infer(spk_dict[sid], tran, raw_audio, raw_sr)
+    o_audio = o_audio.cpu().numpy()
     out_path = f"./out_temp.wav"
     soundfile.write(out_path, o_audio, svc_model.target_sample)
     mistake, var = svc_model.calc_error(audio_path, out_path, tran)

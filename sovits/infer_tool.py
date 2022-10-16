@@ -165,7 +165,7 @@ class Svc(object):
         with torch.no_grad():
             x_tst = stn_tst.unsqueeze(0).to(self.dev)
             x_tst_lengths = torch.LongTensor([stn_tst.size(0)]).to(self.dev)
-            audio = self.n_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid)[0][0, 0].data.float().cpu().numpy()
+            audio = self.n_g_ms.infer(x_tst, x_tst_lengths, pitch, sid=sid)[0][0, 0].data.float()
         return audio, audio.shape[-1]
 
     def format_wav(self, audio_path):
